@@ -1,0 +1,3070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ladder — Lesson Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --walnut: #1E1611;
+  --rosewood: #2E211A;
+  --rosewood-light: #3A2A20;
+  --rosewood-lighter: #46352A;
+  --bone: #ECE1CB;
+  --bone-dim: #B7A98C;
+  --string: #8C7F68;
+  --brass: #C39B57;
+  --sage: #8FA37E;
+  --amber: #D9903F;
+  --copper: #C97D53;
+  --rust: #B24E38;
+  --hairline: #493A2C;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:transparent;color:var(--bone);font-family:'Inter',sans-serif;}
+.app{background:var(--walnut);min-height:100vh;color:var(--bone);padding:36px 44px;max-width:940px;margin:0 auto;}
+
+h1{font-family:'Bitter',serif;font-size:23px;font-weight:700;margin:0 0 4px;color:var(--bone);}
+.subtitle{color:var(--string);font-size:13.5px;margin:0 0 24px;}
+
+.student-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:26px;}
+.student-chip{padding:7px 14px;border-radius:20px;background:var(--rosewood);border:1px solid var(--hairline);font-size:13px;font-weight:500;cursor:pointer;color:var(--bone-dim);}
+.student-chip.active{background:var(--brass);color:var(--walnut);border-color:var(--brass);}
+.student-chip .chip-x{margin-left:8px;color:var(--string);font-weight:700;}
+.student-chip.active .chip-x{color:var(--walnut);opacity:.6;}
+.add-student{display:flex;gap:6px;align-items:center;}
+.add-student input{width:150px;}
+
+.view-tabs{display:flex;gap:8px;margin-bottom:22px;border-bottom:1px solid var(--hairline);}
+.view-tab{padding:9px 4px;font-size:13.5px;font-weight:600;color:var(--string);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.view-tab.active{color:var(--brass);border-bottom-color:var(--brass);}
+
+.card{background:var(--rosewood);border:1px solid var(--hairline);border-radius:10px;padding:20px 22px;margin-bottom:16px;}
+.card-title{font-family:'Bitter',serif;font-weight:600;font-size:16px;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+
+button{font-family:'Inter',sans-serif;cursor:pointer;border:none;border-radius:7px;font-weight:600;font-size:13px;padding:9px 15px;transition:opacity .15s;}
+button:hover{opacity:.88;}
+.btn-primary{background:var(--brass);color:var(--walnut);}
+.btn-ghost{background:var(--rosewood-lighter);color:var(--bone);}
+.btn-tiny{padding:5px 10px;font-size:11.5px;border-radius:6px;}
+
+input,select{font-family:'Inter',sans-serif;background:var(--rosewood-light);border:1px solid var(--hairline);color:var(--bone);border-radius:6px;padding:8px 10px;font-size:13.5px;}
+input:focus,select:focus{outline:1px solid var(--brass);}
+
+/* Piece level */
+.piece-block{border:1px solid var(--hairline);border-radius:10px;padding:16px 18px;margin-bottom:16px;background:var(--rosewood-light);}
+.piece-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px;}
+.piece-head-left{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:160px;}
+.piece-collapse-btn{background:none;border:none;color:var(--string);font-size:11px;cursor:pointer;padding:2px 4px;flex-shrink:0;transition:color .15s;}
+.piece-collapse-btn:hover{color:var(--brass);}
+.piece-summary{font-size:11.5px;color:var(--string);font-family:'IBM Plex Mono',monospace;}
+.piece-block.collapsed{padding-bottom:16px;}
+.piece-block.collapsed .piece-head{margin-bottom:0;}
+.piece-name{font-family:'Bitter',serif;font-weight:700;font-size:15.5px;color:var(--sage);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.piece-name::before{content:"♪ ";opacity:.7;}
+
+/* Exercise level */
+.exercise-block{border:1px solid var(--hairline);border-radius:8px;padding:14px 16px;margin-bottom:10px;background:var(--rosewood-lighter);}
+.exercise-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;}
+.exercise-head-left{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:140px;}
+.exercise-collapse-btn{background:none;border:none;color:var(--string);font-size:11px;cursor:pointer;padding:2px 4px;flex-shrink:0;transition:color .15s;}
+.exercise-collapse-btn:hover{color:var(--brass);}
+.exercise-summary{font-size:11px;color:var(--string);font-family:'IBM Plex Mono',monospace;}
+.exercise-block.collapsed{margin-bottom:10px;}
+.exercise-block.collapsed .exercise-head{margin-bottom:0;}
+.exercise-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Parameter level */
+.group-block{margin:12px 0;padding-left:10px;border-left:2px solid var(--brass);}
+.group-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:8px;}
+.group-head-left{display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:140px;}
+.group-collapse-btn{background:none;border:none;color:var(--string);font-size:10px;cursor:pointer;padding:2px 3px;flex-shrink:0;transition:color .15s;}
+.group-collapse-btn:hover{color:var(--brass);}
+.group-summary{font-size:10.5px;color:var(--string);font-family:'IBM Plex Mono',monospace;}
+.group-name{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--brass);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-select{font-family:'Inter',sans-serif;background:var(--rosewood-light);border:1px solid var(--hairline);color:var(--bone-dim);border-radius:6px;padding:3px 6px;font-size:11px;}
+
+/* Sub-parameter level */
+.subgroup-block{margin:10px 0 10px 14px;padding-left:10px;border-left:2px dashed var(--rust);}
+.subgroup-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:8px;}
+.subgroup-head-left{display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:140px;}
+.subgroup-collapse-btn{background:none;border:none;color:var(--rust);font-size:10px;cursor:pointer;padding:2px 3px;flex-shrink:0;transition:color .15s;}
+.subgroup-collapse-btn:hover{color:var(--sage);}
+.subgroup-summary{font-size:10.5px;color:var(--string);font-family:'IBM Plex Mono',monospace;}
+.subgroup-name{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--rust);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.add-subgroup-row{display:flex;gap:6px;margin-top:8px;}
+.add-subgroup-row input{flex:1;}
+
+/* Sub-type level */
+.subsubgroup-block{margin:8px 0 8px 14px;padding-left:10px;border-left:2px dotted var(--sage);}
+.subsubgroup-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:8px;}
+.subsubgroup-head-left{display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:140px;}
+.subsubgroup-collapse-btn{background:none;border:none;color:var(--sage);font-size:11px;cursor:pointer;padding:2px 3px;flex-shrink:0;}
+.subsubgroup-collapse-btn:hover{color:var(--bone);}
+.subsubgroup-summary{font-size:10.5px;color:var(--bone-dim);font-family:'IBM Plex Mono',monospace;}
+.subsubgroup-name{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sage);text-decoration:underline;text-decoration-color:var(--sage);text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.add-subsubgroup-row{display:flex;gap:6px;margin-top:10px;padding:8px;background:rgba(196,196,188,.06);border:1px dashed var(--string);border-radius:6px;}
+.add-subsubgroup-row input{flex:1;}
+.subsubgroup-select{font-family:'Inter',sans-serif;background:var(--rosewood-light);border:1px solid var(--hairline);color:var(--bone-dim);border-radius:6px;padding:3px 6px;font-size:11px;}
+
+/* Step level */
+.step-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.step-row:last-child{border-bottom:none;}
+.step-row.in-week{background:rgba(195,155,87,.08);border-radius:6px;padding-left:6px;padding-right:6px;margin:0 -6px;}
+.step-order{display:flex;flex-direction:column;gap:1px;flex-shrink:0;}
+.order-btn{background:none;border:none;color:var(--string);cursor:pointer;font-size:10px;padding:0 4px;line-height:1;}
+.order-btn:hover{color:var(--brass);}
+.step-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--hairline);flex-shrink:0;}
+.step-dot.in_process{border-color:var(--amber);background:var(--amber);}
+.step-dot.refining{border-color:var(--copper);background:var(--copper);}
+.step-dot.needs_review{border-color:var(--sage);background:var(--sage);}
+.step-dot.locked_in{border-color:var(--brass);background:var(--brass);}
+.step-label{flex:1;font-size:13.5px;min-width:110px;}
+.status-group{display:flex;gap:5px;}
+.status-btn{padding:4px 9px;border-radius:6px;font-size:10.5px;font-weight:600;background:var(--rosewood-lighter);color:var(--string);cursor:pointer;border:1px solid transparent;}
+.status-btn.sel-not_started{background:var(--rosewood-lighter);color:var(--bone-dim);border-color:var(--string);}
+.status-btn.sel-in_process{background:rgba(217,144,63,.18);color:var(--amber);border-color:var(--amber);}
+.status-btn.sel-refining{background:rgba(201,125,83,.2);color:var(--copper);border-color:var(--copper);}
+.status-btn.sel-needs_review{background:rgba(143,163,126,.2);color:var(--sage);border-color:var(--sage);}
+.status-btn.sel-locked_in{background:rgba(195,155,87,.2);color:var(--brass);border-color:var(--brass);}
+.week-toggle{padding:4px 9px;border-radius:6px;font-size:10.5px;font-weight:600;background:var(--rosewood-lighter);color:var(--string);cursor:pointer;border:1px solid var(--hairline);white-space:nowrap;}
+.week-toggle.on{background:var(--brass);color:var(--walnut);border-color:var(--brass);}
+.step-remove{color:var(--string);cursor:pointer;font-size:14px;padding:0 3px;}
+.step-remove:hover{color:var(--rust);}
+
+.add-step-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.add-step-row input{flex:1;min-width:140px;}
+.add-group-row{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--hairline);}
+.add-group-row input{flex:1;}
+.add-exercise-row{display:flex;gap:6px;margin-top:8px;}
+.add-exercise-row input{flex:1;}
+.add-piece-row{display:flex;gap:6px;margin-top:6px;}
+.add-piece-row input{flex:1;}
+
+.empty{color:var(--string);font-size:13.5px;padding:18px 4px;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--string);}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--hairline);}
+.legend-dot.in_process{border-color:var(--amber);background:var(--amber);}
+.legend-dot.refining{border-color:var(--copper);background:var(--copper);}
+.legend-dot.needs_review{border-color:var(--sage);background:var(--sage);}
+.legend-dot.locked_in{border-color:var(--brass);background:var(--brass);}
+
+.msg-box{background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;color:var(--bone);}
+.hint{font-size:11.5px;color:var(--string);margin-top:6px;line-height:1.5;}
+.list-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);gap:10px;}
+.list-row:last-child{border-bottom:none;}
+.list-row-name{font-weight:600;font-size:13.5px;}
+.list-row-meta{font-size:11px;color:var(--string);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+.tplcard-title{cursor:pointer;user-select:none;}
+.tplrow-wrap{border-bottom:1px solid var(--hairline);}
+.tplrow-wrap:last-child{border-bottom:none;}
+.tplrow-wrap .list-row{border-bottom:none;}
+.tplrow-toggle{background:none;border:none;color:var(--string);cursor:pointer;font-size:10px;padding:2px 5px 2px 0;}
+.tplrow-toggle:hover{color:var(--brass);}
+.tpl-source-header{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--string);margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--hairline);}
+.tpl-source-header:first-child{margin-top:0;padding-top:0;border-top:none;}
+.tpl-editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.tpl-editor-modal{background:var(--rosewood);border:1px solid var(--hairline);border-radius:12px;max-width:820px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.tpl-editor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px;}
+.tpl-editor-title{font-family:'Bitter',serif;font-weight:700;font-size:19px;color:var(--bone);}
+.tpl-editor-add-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px;padding:10px;background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;}
+.tpl-editor-add-row input{flex:1;min-width:160px;}
+.tpltree{padding:4px 0 12px 18px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.9;}
+.tpltree-row{display:flex;gap:6px;align-items:baseline;}
+.tpltree-tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:4px;flex-shrink:0;}
+.tpltree-tag.exercise{background:rgba(196,196,188,.15);color:var(--bone-dim);}
+.tpltree-tag.piece{background:rgba(143,163,126,.2);color:var(--sage);}
+.tpltree-tag.param{background:rgba(195,155,87,.18);color:var(--brass);}
+.tpltree-tag.subparam{background:rgba(178,78,56,.18);color:var(--rust);}
+.tpltree-tag.subtype{background:rgba(143,163,126,.2);color:var(--sage);}
+.tpltree-tag.step{background:rgba(196,196,188,.1);color:var(--string);}
+.tpltree-name{color:var(--bone);}
+.editable{cursor:text;}
+.editable:hover{text-decoration:underline dotted;text-underline-offset:3px;}
+.inline-edit{font-family:inherit;font-size:inherit;font-weight:inherit;color:var(--bone);background:var(--rosewood-lighter);border:1px solid var(--brass);border-radius:5px;padding:2px 6px;width:100%;box-sizing:border-box;}
+</style>
+</head>
+<body>
+<div id="root" class="app"></div>
+
+<script>
+// Standalone compatibility: if window.storage isn't provided (i.e. this file
+// is opened directly in a browser or hosted elsewhere, not inside Claude.ai),
+// fall back to localStorage with the same API shape. This makes the file
+// fully self-contained and independent of Claude.ai's artifact environment.
+if(!window.storage){
+  window.storage = {
+    get: async (key)=>{
+      const val = localStorage.getItem('ladder:'+key);
+      return val === null ? null : { key, value: val };
+    },
+    set: async (key, value)=>{
+      localStorage.setItem('ladder:'+key, value);
+      return { key, value };
+    },
+    delete: async (key)=>{
+      const existed = localStorage.getItem('ladder:'+key) !== null;
+      localStorage.removeItem('ladder:'+key);
+      return { key, deleted: existed };
+    },
+    list: async (prefix)=>{
+      const keys = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('ladder:')){
+          const stripped = k.slice(7);
+          if(!prefix || stripped.startsWith(prefix)) keys.push(stripped);
+        }
+      }
+      return { keys, prefix };
+    }
+  };
+}
+
+const KEY_V3 = 'tracker-data-v3';
+const KEY_V2 = 'tracker-data-v2';
+const TEMPLATES_KEY = 'templates-v1';
+const PIECE_TEMPLATES_KEY = 'piece-templates-v1';
+const PARAM_TEMPLATES_KEY = 'param-templates-v1';
+const SUBPARAM_TEMPLATES_KEY = 'subparam-templates-v1';
+const SUBTYPE_TEMPLATES_KEY = 'subtype-templates-v1';
+const SCRIPTS_KEY = 'custom-scripts-v1';
+const STATUS = ['not_started','in_process','refining','needs_review','locked_in'];
+const STATUS_LABEL = { not_started: 'Standby', in_process: 'Waiting for Submission', refining: 'Almost There', needs_review: 'Review', locked_in: 'Locked In' };
+
+let state = { students: [], templates: [], pieceTemplates: [], paramTemplates: [], subParamTemplates: [], subTypeTemplates: [], customScripts: [], selected: null, loaded: false, view: 'week', collapsedPieces: new Set(), collapsedExercises: new Set(), collapsedGroups: new Set(), collapsedSubgroups: new Set(), collapsedSubSubgroups: new Set(), collapsedTemplateCards: new Set(), collapsedTemplateRows: new Set(), saveError: null, lastInsertTarget: {}, templateEditMode: null, pendingImport: null, importError: null };
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+async function load(){
+  try{
+    const r = await window.storage.get(KEY_V3);
+    if(r){ state.students = JSON.parse(r.value); }
+    else {
+      let migrated = [];
+      try{
+        const old = await window.storage.get(KEY_V2);
+        if(old){
+          const oldStudents = JSON.parse(old.value);
+          migrated = oldStudents.map(s=>({
+            id: s.id, name: s.name,
+            pieces: [{ id: uid(), name: 'General', exercises: (s.exercises||[]).map(ex=>({ id: ex.id, name: ex.name, groups: ex.groups||[], steps: ex.steps||[] })) }]
+          }));
+        }
+      }catch(e){}
+      state.students = migrated;
+    }
+  }catch(e){ state.students = []; }
+  (state.students||[]).forEach(s=>{
+    (s.pieces||[]).forEach(p=>{
+      p.exercises.forEach(ex=>{
+        ex.steps.forEach(st=>{ if(st.status==='retry') st.status = 'refining'; });
+      });
+    });
+  });
+  state.loaded = true;
+  if(state.students.length && !state.selected) state.selected = state.students[0].id;
+  if(state.selected) applyDefaultCollapseForStudent(state.selected);
+  try{
+    const t = await window.storage.get(TEMPLATES_KEY);
+    state.templates = t ? JSON.parse(t.value) : [];
+  }catch(e){ state.templates = []; }
+  try{
+    const pt = await window.storage.get(PIECE_TEMPLATES_KEY);
+    state.pieceTemplates = pt ? JSON.parse(pt.value) : [];
+  }catch(e){ state.pieceTemplates = []; }
+  try{
+    const prt = await window.storage.get(PARAM_TEMPLATES_KEY);
+    state.paramTemplates = prt ? JSON.parse(prt.value) : [];
+  }catch(e){ state.paramTemplates = []; }
+  try{
+    const spt = await window.storage.get(SUBPARAM_TEMPLATES_KEY);
+    state.subParamTemplates = spt ? JSON.parse(spt.value) : [];
+  }catch(e){ state.subParamTemplates = []; }
+  try{
+    const stt = await window.storage.get(SUBTYPE_TEMPLATES_KEY);
+    state.subTypeTemplates = stt ? JSON.parse(stt.value) : [];
+  }catch(e){ state.subTypeTemplates = []; }
+  try{
+    const cs = await window.storage.get(SCRIPTS_KEY);
+    state.customScripts = cs ? JSON.parse(cs.value) : [];
+  }catch(e){ state.customScripts = []; }
+  let paramTitlesBackfilled = false, subParamTitlesBackfilled = false, pieceExIdsBackfilled = false, subTypeTitlesBackfilled = false, exTitlesBackfilled = false;
+  state.templates.forEach(t=>{ if(t.title === undefined){ t.title = t.name; exTitlesBackfilled = true; } });
+  state.paramTemplates.forEach(t=>{
+    if(t.title === undefined){ t.title = t.name; paramTitlesBackfilled = true; }
+    (t.steps||[]).forEach(st=>{ if(!st.id){ st.id = uid(); paramTitlesBackfilled = true; } });
+  });
+  state.subParamTemplates.forEach(t=>{
+    if(t.title === undefined){ t.title = t.name; subParamTitlesBackfilled = true; }
+    (t.steps||[]).forEach(st=>{ if(!st.id){ st.id = uid(); subParamTitlesBackfilled = true; } });
+  });
+  state.subTypeTemplates.forEach(t=>{
+    if(t.title === undefined){ t.title = t.name; subTypeTitlesBackfilled = true; }
+    (t.steps||[]).forEach(st=>{ if(!st.id){ st.id = uid(); subTypeTitlesBackfilled = true; } });
+  });
+  state.pieceTemplates.forEach(t=>{
+    if(t.title === undefined){ t.title = t.name; pieceExIdsBackfilled = true; }
+    (t.exercises||[]).forEach(e=>{ if(!e.id){ e.id = uid(); pieceExIdsBackfilled = true; } });
+  });
+  if(exTitlesBackfilled) saveTemplates();
+  if(paramTitlesBackfilled) saveParamTemplates();
+  if(subParamTitlesBackfilled) saveSubParamTemplates();
+  if(subTypeTitlesBackfilled) saveSubTypeTemplates();
+  if(pieceExIdsBackfilled) savePieceTemplates();
+  save();
+  render();
+}
+function flagSaveError(context){
+  state.saveError = context;
+  render();
+}
+function clearSaveError(){
+  if(state.saveError){ state.saveError = null; render(); }
+}
+function applyPendingImport(){
+  const parsed = state.pendingImport;
+  if(!parsed) return;
+  state.students = parsed.students || [];
+  state.templates = parsed.templates || [];
+  state.pieceTemplates = parsed.pieceTemplates || [];
+  state.paramTemplates = parsed.paramTemplates || [];
+  state.subParamTemplates = parsed.subParamTemplates || [];
+  state.subTypeTemplates = parsed.subTypeTemplates || [];
+  state.customScripts = parsed.customScripts || [];
+  state.selected = state.students.length ? state.students[0].id : null;
+  state.pendingImport = null;
+  Promise.all([save(), saveTemplates(), savePieceTemplates(), saveParamTemplates(), saveSubParamTemplates(), saveSubTypeTemplates(), saveCustomScripts()]).then(render);
+  render();
+}
+function cancelPendingImport(){
+  state.pendingImport = null;
+  render();
+}
+async function save(){
+  try{ await window.storage.set(KEY_V3, JSON.stringify(state.students)); clearSaveError(); }
+  catch(e){ console.error('save failed', e); flagSaveError('student data'); }
+}
+async function saveTemplates(){
+  try{ await window.storage.set(TEMPLATES_KEY, JSON.stringify(state.templates)); clearSaveError(); }
+  catch(e){ console.error('save templates failed', e); flagSaveError('exercise templates'); }
+}
+async function savePieceTemplates(){
+  try{ await window.storage.set(PIECE_TEMPLATES_KEY, JSON.stringify(state.pieceTemplates)); clearSaveError(); }
+  catch(e){ console.error('save piece templates failed', e); flagSaveError('piece templates'); }
+}
+async function saveParamTemplates(){
+  try{ await window.storage.set(PARAM_TEMPLATES_KEY, JSON.stringify(state.paramTemplates)); clearSaveError(); }
+  catch(e){ console.error('save param templates failed', e); flagSaveError('parameter templates'); }
+}
+async function saveSubParamTemplates(){
+  try{ await window.storage.set(SUBPARAM_TEMPLATES_KEY, JSON.stringify(state.subParamTemplates)); clearSaveError(); }
+  catch(e){ console.error('save subparam templates failed', e); flagSaveError('sub-parameter templates'); }
+}
+async function saveSubTypeTemplates(){
+  try{ await window.storage.set(SUBTYPE_TEMPLATES_KEY, JSON.stringify(state.subTypeTemplates)); clearSaveError(); }
+  catch(e){ console.error('save subtype templates failed', e); flagSaveError('sub-type templates'); }
+}
+async function saveCustomScripts(){
+  try{ await window.storage.set(SCRIPTS_KEY, JSON.stringify(state.customScripts)); clearSaveError(); }
+  catch(e){ console.error('save scripts failed', e); flagSaveError('scripts'); }
+}
+function addCustomScript(title, body){
+  if(!title || !title.trim() || !body || !body.trim()) return;
+  state.customScripts.push({ id: uid(), title: title.trim(), body: body.trim() });
+  saveCustomScripts(); render();
+}
+function removeCustomScript(id){
+  state.customScripts = state.customScripts.filter(sc=>sc.id!==id);
+  saveCustomScripts(); render();
+}
+
+function getStudent(id){ return state.students.find(s=>s.id===id); }
+
+function collapseAllTemplateCards(){
+  state.collapsedTemplateCards.add('piece');
+  state.collapsedTemplateCards.add('exercise');
+  const sourceKeys = new Set();
+  state.paramTemplates.forEach(t=> sourceKeys.add(t.sourceExercise || 'Other'));
+  state.subParamTemplates.forEach(t=> sourceKeys.add(t.sourceExercise || 'Other'));
+  state.subTypeTemplates.forEach(t=> sourceKeys.add(t.sourceExercise || 'Other'));
+  sourceKeys.forEach(k=> state.collapsedTemplateCards.add('ex-src:' + k));
+}
+
+function applyDefaultCollapseForStudent(studentId){
+  const s = getStudent(studentId);
+  if(!s) return;
+
+  (s.pieces||[]).forEach(p=>{
+    const pieceActive = p.exercises.some(ex=>ex.steps.some(st=>st.thisWeek));
+    if(pieceActive) state.collapsedPieces.delete(p.id); else state.collapsedPieces.add(p.id);
+    p.exercises.forEach(ex=>{
+      const exActive = pieceActive && ex.steps.some(st=>st.thisWeek);
+      if(exActive) state.collapsedExercises.delete(ex.id); else state.collapsedExercises.add(ex.id);
+      (ex.groups||[]).forEach(g=>{
+        if(exActive) state.collapsedGroups.delete(g.id); else state.collapsedGroups.add(g.id);
+        (g.subgroups||[]).forEach(sg=>{
+          state.collapsedSubgroups.add(sg.id);
+          (sg.subsubgroups||[]).forEach(ssg=> state.collapsedSubSubgroups.add(ssg.id));
+        });
+      });
+    });
+  });
+}
+function getPiece(studentId, pieceId){ return getStudent(studentId).pieces.find(p=>p.id===pieceId); }
+function getExercise(studentId, pieceId, exerciseId){ return getPiece(studentId, pieceId).exercises.find(e=>e.id===exerciseId); }
+function cloneExerciseStructure(src){
+  const groupIdMap = {}, subGroupIdMap = {}, subSubGroupIdMap = {};
+  const newGroups = (src.groups||[]).map(g=>{
+    const newGid = uid();
+    groupIdMap[g.id] = newGid;
+    const newSubgroups = (g.subgroups||[]).map(sg=>{
+      const newSgid = uid();
+      subGroupIdMap[sg.id] = newSgid;
+      const newSubsubgroups = (sg.subsubgroups||[]).map(ssg=>{
+        const newSsgid = uid();
+        subSubGroupIdMap[ssg.id] = newSsgid;
+        return { id: newSsgid, name: ssg.name };
+      });
+      return { id: newSgid, name: sg.name, subsubgroups: newSubsubgroups };
+    });
+    return { id: newGid, name: g.name, subgroups: newSubgroups };
+  });
+  const newSteps = (src.steps||[]).map(st=>({
+    id: uid(),
+    label: st.label,
+    status: 'not_started',
+    thisWeek: false,
+    groupId: st.groupId ? (groupIdMap[st.groupId]||null) : null,
+    subGroupId: st.subGroupId ? (subGroupIdMap[st.subGroupId]||null) : null,
+    subSubGroupId: st.subSubGroupId ? (subSubGroupIdMap[st.subSubGroupId]||null) : null
+  }));
+  return { groups: newGroups, steps: newSteps };
+}
+function saveExerciseAsTemplate(studentId, pieceId, exerciseId, name){
+  if(!name || !name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const p = getPiece(studentId, pieceId);
+  if(!ex) return;
+  const cloned = cloneExerciseStructure(ex);
+  state.templates.push({ id: uid(), name: ex.name, title: name.trim(), groups: cloned.groups, steps: cloned.steps, sourcePiece: p ? p.name : null });
+  saveTemplates(); render();
+}
+function copyPieceToStudent(sourceStudentId, sourcePieceId, targetStudentId){
+  const srcPiece = getPiece(sourceStudentId, sourcePieceId);
+  const targetStudent = getStudent(targetStudentId);
+  if(!srcPiece || !targetStudent) return;
+  const newExercises = srcPiece.exercises.map(ex=>{
+    const cloned = cloneExerciseStructure(ex);
+    return { id: uid(), name: ex.name, groups: cloned.groups, steps: cloned.steps };
+  });
+  targetStudent.pieces.push({ id: uid(), name: srcPiece.name, exercises: newExercises });
+  save(); render();
+}
+
+function insertTemplate(studentId, pieceId, templateId){
+  const tpl = state.templates.find(t=>t.id===templateId);
+  const p = getPiece(studentId, pieceId);
+  if(!tpl || !p) return;
+  const cloned = cloneExerciseStructure(tpl);
+  p.exercises.push({ id: uid(), name: tpl.name, groups: cloned.groups, steps: cloned.steps });
+  state.collapsedPieces.delete(pieceId);
+  save(); render();
+}
+function removeTemplate(templateId){
+  state.templates = state.templates.filter(t=>t.id!==templateId);
+  saveTemplates(); render();
+}
+
+function savePieceAsTemplate(studentId, pieceId, name){
+  if(!name || !name.trim()) return;
+  const p = getPiece(studentId, pieceId);
+  if(!p) return;
+  const exercises = p.exercises.map(ex=>({ id: uid(), name: ex.name }));
+  state.pieceTemplates.push({ id: uid(), name: p.name, title: name.trim(), exercises });
+  savePieceTemplates(); render();
+}
+function insertPieceTemplate(studentId, templateId, newPieceName){
+  const tpl = state.pieceTemplates.find(t=>t.id===templateId);
+  const s = getStudent(studentId);
+  if(!tpl || !s) return;
+  const newExercises = tpl.exercises.map(ex=>({ id: uid(), name: ex.name, groups: [], steps: [] }));
+  s.pieces.push({ id: uid(), name: (newPieceName && newPieceName.trim()) || tpl.name, exercises: newExercises });
+  save(); render();
+}
+function removePieceTemplate(templateId){
+  state.pieceTemplates = state.pieceTemplates.filter(t=>t.id!==templateId);
+  savePieceTemplates(); render();
+}
+
+function cloneParamStructure(source){
+  const subGroupIdMap = {}, subSubGroupIdMap = {};
+  const newSubgroups = (source.subgroups||[]).map(sg=>{
+    const newSgid = uid();
+    subGroupIdMap[sg.id] = newSgid;
+    const newSubsubgroups = (sg.subsubgroups||[]).map(ssg=>{
+      const newSsgid = uid();
+      subSubGroupIdMap[ssg.id] = newSsgid;
+      return { id: newSsgid, name: ssg.name };
+    });
+    return { id: newSgid, name: sg.name, subsubgroups: newSubsubgroups };
+  });
+  const newSteps = (source.steps||[]).map(st=>({
+    id: uid(),
+    label: st.label,
+    subGroupId: st.subGroupId ? (subGroupIdMap[st.subGroupId]||null) : null,
+    subSubGroupId: st.subSubGroupId ? (subSubGroupIdMap[st.subSubGroupId]||null) : null
+  }));
+  return { subgroups: newSubgroups, steps: newSteps };
+}
+function saveParameterAsTemplate(studentId, pieceId, exerciseId, groupId, name){
+  if(!name || !name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const p = getPiece(studentId, pieceId);
+  const g = ex && (ex.groups||[]).find(x=>x.id===groupId);
+  if(!g) return;
+  const relevantSteps = ex.steps.filter(st=>st.groupId===groupId).map(st=>({ label: st.label, subGroupId: st.subGroupId, subSubGroupId: st.subSubGroupId }));
+  const cloned = cloneParamStructure({ subgroups: g.subgroups, steps: relevantSteps });
+  state.paramTemplates.push({ id: uid(), name: g.name, title: name.trim(), subgroups: cloned.subgroups, steps: cloned.steps, sourcePiece: p ? p.name : null, sourceExercise: ex.name });
+  saveParamTemplates(); render();
+}
+function insertParamTemplate(studentId, pieceId, exerciseId, templateId){
+  const tpl = state.paramTemplates.find(t=>t.id===templateId);
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  if(!tpl || !ex) return;
+  const cloned = cloneParamStructure(tpl);
+  const newGroupId = uid();
+  if(!ex.groups) ex.groups = [];
+  ex.groups.push({ id: newGroupId, name: tpl.name, subgroups: cloned.subgroups });
+  cloned.steps.forEach(st=>{
+    ex.steps.push({ id: uid(), label: st.label, status: 'not_started', thisWeek: false, groupId: newGroupId, subGroupId: st.subGroupId || null, subSubGroupId: st.subSubGroupId || null });
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  save(); render();
+}
+function removeParamTemplate(templateId){
+  state.paramTemplates = state.paramTemplates.filter(t=>t.id!==templateId);
+  saveParamTemplates(); render();
+}
+
+function cloneSubParamStructure(source){
+  const subSubGroupIdMap = {};
+  const newSubsubgroups = (source.subsubgroups||[]).map(ssg=>{
+    const newSsgid = uid();
+    subSubGroupIdMap[ssg.id] = newSsgid;
+    return { id: newSsgid, name: ssg.name };
+  });
+  const newSteps = (source.steps||[]).map(st=>({
+    id: uid(),
+    label: st.label,
+    subSubGroupId: st.subSubGroupId ? (subSubGroupIdMap[st.subSubGroupId]||null) : null
+  }));
+  return { subsubgroups: newSubsubgroups, steps: newSteps };
+}
+function saveSubgroupAsTemplate(studentId, pieceId, exerciseId, groupId, subGroupId, name){
+  if(!name || !name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const p = getPiece(studentId, pieceId);
+  const g = ex && (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId);
+  if(!sg) return;
+  const relevantSteps = ex.steps.filter(st=>st.groupId===groupId && st.subGroupId===subGroupId).map(st=>({ label: st.label, subSubGroupId: st.subSubGroupId }));
+  const cloned = cloneSubParamStructure({ subsubgroups: sg.subsubgroups, steps: relevantSteps });
+  state.subParamTemplates.push({ id: uid(), name: sg.name, title: name.trim(), subsubgroups: cloned.subsubgroups, steps: cloned.steps, sourcePiece: p ? p.name : null, sourceExercise: ex.name });
+  saveSubParamTemplates(); render();
+}
+function insertSubParamTemplate(studentId, pieceId, exerciseId, groupId, templateId){
+  const tpl = state.subParamTemplates.find(t=>t.id===templateId);
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = ex && (ex.groups||[]).find(x=>x.id===groupId);
+  if(!tpl || !g) return;
+  const cloned = cloneSubParamStructure(tpl);
+  const newSubGroupId = uid();
+  if(!g.subgroups) g.subgroups = [];
+  g.subgroups.push({ id: newSubGroupId, name: tpl.name, subsubgroups: cloned.subsubgroups });
+  cloned.steps.forEach(st=>{
+    ex.steps.push({ id: uid(), label: st.label, status: 'not_started', thisWeek: false, groupId: groupId, subGroupId: newSubGroupId, subSubGroupId: st.subSubGroupId || null });
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  save(); render();
+}
+function removeSubParamTemplate(templateId){
+  state.subParamTemplates = state.subParamTemplates.filter(t=>t.id!==templateId);
+  saveSubParamTemplates(); render();
+}
+
+function saveSubSubgroupAsTemplate(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId, name){
+  if(!name || !name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const p = getPiece(studentId, pieceId);
+  const g = ex && (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId);
+  const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===subSubGroupId);
+  if(!ssg) return;
+  const relevantSteps = ex.steps.filter(st=>st.groupId===groupId && st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId);
+  const steps = relevantSteps.map(st=>({ id: uid(), label: st.label }));
+  state.subTypeTemplates.push({ id: uid(), name: ssg.name, title: name.trim(), steps, sourcePiece: p ? p.name : null, sourceExercise: ex.name });
+  saveSubTypeTemplates(); render();
+}
+function insertSubTypeTemplate(studentId, pieceId, exerciseId, groupId, subGroupId, templateId){
+  const tpl = state.subTypeTemplates.find(t=>t.id===templateId);
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = ex && (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId);
+  if(!tpl || !sg) return;
+  const newSubSubGroupId = uid();
+  if(!sg.subsubgroups) sg.subsubgroups = [];
+  sg.subsubgroups.push({ id: newSubSubGroupId, name: tpl.name });
+  (tpl.steps||[]).forEach(st=>{
+    ex.steps.push({ id: uid(), label: st.label, status: 'not_started', thisWeek: false, groupId: groupId, subGroupId: subGroupId, subSubGroupId: newSubSubGroupId });
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  state.collapsedSubgroups.delete(subGroupId);
+  save(); render();
+}
+function removeSubTypeTemplate(templateId){
+  state.subTypeTemplates = state.subTypeTemplates.filter(t=>t.id!==templateId);
+  saveSubTypeTemplates(); render();
+}
+
+// ---- Template internal editing (Edit Template mode) ----
+function tplCollection(type){
+  if(type==='exercise') return state.templates;
+  if(type==='param') return state.paramTemplates;
+  if(type==='subparam') return state.subParamTemplates;
+  if(type==='subtype') return state.subTypeTemplates;
+}
+function tplSave(type){
+  if(type==='exercise') saveTemplates();
+  else if(type==='param') saveParamTemplates();
+  else if(type==='subparam') saveSubParamTemplates();
+  else if(type==='subtype') saveSubTypeTemplates();
+}
+function findTpl(type, tid){ return (tplCollection(type)||[]).find(t=>t.id===tid); }
+
+// Exercise templates (t.groups, t.steps) — full 3-level structure
+function addExTplParam(tid, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('exercise', tid); if(!t) return;
+  if(!t.groups) t.groups = [];
+  t.groups.push({ id: uid(), name: name.trim(), subgroups: [] });
+  tplSave('exercise'); render();
+}
+function removeExTplParam(tid, groupId){
+  const t = findTpl('exercise', tid); if(!t) return;
+  t.groups = (t.groups||[]).filter(g=>g.id!==groupId);
+  t.steps = (t.steps||[]).filter(st=>st.groupId!==groupId);
+  tplSave('exercise'); render();
+}
+function addExTplSubparam(tid, groupId, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); if(!g) return;
+  if(!g.subgroups) g.subgroups = [];
+  g.subgroups.push({ id: uid(), name: name.trim(), subsubgroups: [] });
+  tplSave('exercise'); render();
+}
+function removeExTplSubparam(tid, groupId, subGroupId){
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); if(!g) return;
+  g.subgroups = (g.subgroups||[]).filter(sg=>sg.id!==subGroupId);
+  t.steps = (t.steps||[]).filter(st=>!(st.groupId===groupId && st.subGroupId===subGroupId));
+  tplSave('exercise'); render();
+}
+function addExTplSubtype(tid, groupId, subGroupId, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  if(!sg.subsubgroups) sg.subsubgroups = [];
+  sg.subsubgroups.push({ id: uid(), name: name.trim() });
+  tplSave('exercise'); render();
+}
+function removeExTplSubtype(tid, groupId, subGroupId, subSubGroupId){
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  sg.subsubgroups = (sg.subsubgroups||[]).filter(ssg=>ssg.id!==subSubGroupId);
+  t.steps = (t.steps||[]).filter(st=>!(st.groupId===groupId && st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId));
+  tplSave('exercise'); render();
+}
+function addExTplStep(tid, groupId, subGroupId, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('exercise', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  t.steps.push({ id: uid(), label: label.trim(), groupId: groupId||null, subGroupId: subGroupId||null, subSubGroupId: subSubGroupId||null });
+  tplSave('exercise'); render();
+}
+function removeExTplStep(tid, stepId){
+  const t = findTpl('exercise', tid); if(!t) return;
+  t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
+  tplSave('exercise'); render();
+}
+
+// Parameter templates (t.subgroups, t.steps) — template itself is the Parameter
+function addParamTplSubparam(tid, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('param', tid); if(!t) return;
+  if(!t.subgroups) t.subgroups = [];
+  t.subgroups.push({ id: uid(), name: name.trim(), subsubgroups: [] });
+  tplSave('param'); render();
+}
+function removeParamTplSubparam(tid, subGroupId){
+  const t = findTpl('param', tid); if(!t) return;
+  t.subgroups = (t.subgroups||[]).filter(sg=>sg.id!==subGroupId);
+  t.steps = (t.steps||[]).filter(st=>st.subGroupId!==subGroupId);
+  tplSave('param'); render();
+}
+function addParamTplSubtype(tid, subGroupId, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('param', tid); const sg = t && (t.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  if(!sg.subsubgroups) sg.subsubgroups = [];
+  sg.subsubgroups.push({ id: uid(), name: name.trim() });
+  tplSave('param'); render();
+}
+function removeParamTplSubtype(tid, subGroupId, subSubGroupId){
+  const t = findTpl('param', tid); const sg = t && (t.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  sg.subsubgroups = (sg.subsubgroups||[]).filter(ssg=>ssg.id!==subSubGroupId);
+  t.steps = (t.steps||[]).filter(st=>!(st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId));
+  tplSave('param'); render();
+}
+function addParamTplStep(tid, subGroupId, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('param', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  t.steps.push({ id: uid(), label: label.trim(), subGroupId: subGroupId||null, subSubGroupId: subSubGroupId||null });
+  tplSave('param'); render();
+}
+function removeParamTplStep(tid, stepId){
+  const t = findTpl('param', tid); if(!t) return;
+  t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
+  tplSave('param'); render();
+}
+
+// Sub-parameter templates (t.subsubgroups, t.steps) — template itself is the Sub-parameter
+function addSubParamTplSubtype(tid, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('subparam', tid); if(!t) return;
+  if(!t.subsubgroups) t.subsubgroups = [];
+  t.subsubgroups.push({ id: uid(), name: name.trim() });
+  tplSave('subparam'); render();
+}
+function removeSubParamTplSubtype(tid, subSubGroupId){
+  const t = findTpl('subparam', tid); if(!t) return;
+  t.subsubgroups = (t.subsubgroups||[]).filter(ssg=>ssg.id!==subSubGroupId);
+  t.steps = (t.steps||[]).filter(st=>st.subSubGroupId!==subSubGroupId);
+  tplSave('subparam'); render();
+}
+function addSubParamTplStep(tid, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('subparam', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  t.steps.push({ id: uid(), label: label.trim(), subSubGroupId: subSubGroupId||null });
+  tplSave('subparam'); render();
+}
+function removeSubParamTplStep(tid, stepId){
+  const t = findTpl('subparam', tid); if(!t) return;
+  t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
+  tplSave('subparam'); render();
+}
+
+// Sub-type templates (t.steps only)
+function addSubTypeTplStep(tid, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('subtype', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  t.steps.push({ id: uid(), label: label.trim() });
+  tplSave('subtype'); render();
+}
+function removeSubTypeTplStep(tid, stepId){
+  const t = findTpl('subtype', tid); if(!t) return;
+  t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
+  tplSave('subtype'); render();
+}
+
+function findExerciseById(exerciseId){
+  for(const s of state.students){
+    for(const p of (s.pieces||[])){
+      for(const ex of p.exercises){
+        if(ex.id===exerciseId) return ex;
+      }
+    }
+  }
+  return null;
+}
+
+function populateStepSubgroupSelect(exId){
+  const ex = findExerciseById(exId);
+  const groupSel = document.getElementById('stepgroup-'+exId);
+  const subSel = document.getElementById('stepsubgroup-'+exId);
+  if(!ex || !groupSel || !subSel) return;
+  const g = (ex.groups||[]).find(x=>x.id===groupSel.value);
+  const subgroups = (g && g.subgroups) || [];
+  subSel.innerHTML = '<option value="">No subparameter</option>' + subgroups.map(sg=>`<option value="${sg.id}">${escapeHTML(sg.name)}</option>`).join('');
+  subSel.disabled = subgroups.length===0;
+  populateStepSubSubgroupSelect(exId);
+}
+
+function populateStepSubSubgroupSelect(exId){
+  const ex = findExerciseById(exId);
+  const groupSel = document.getElementById('stepgroup-'+exId);
+  const subSel = document.getElementById('stepsubgroup-'+exId);
+  const subSubSel = document.getElementById('stepsubsubgroup-'+exId);
+  if(!ex || !groupSel || !subSel || !subSubSel) return;
+  const g = (ex.groups||[]).find(x=>x.id===groupSel.value);
+  const sg = g && (g.subgroups||[]).find(x=>x.id===subSel.value);
+  const subsubgroups = (sg && sg.subsubgroups) || [];
+  subSubSel.innerHTML = '<option value="">No sub-type</option>' + subsubgroups.map(ssg=>`<option value="${ssg.id}">${escapeHTML(ssg.name)}</option>`).join('');
+  subSubSel.disabled = subsubgroups.length===0;
+}
+
+/* ---------- Actions ---------- */
+
+function addStudent(name){
+  if(!name.trim()) return;
+  const s = { id: uid(), name: name.trim(), pieces: [] };
+  state.students.push(s);
+  state.selected = s.id;
+  save(); render();
+}
+function removeStudent(id){
+  state.students = state.students.filter(s=>s.id!==id);
+  if(state.selected===id) state.selected = state.students.length ? state.students[0].id : null;
+  save(); render();
+}
+function addPiece(studentId, name){
+  if(!name.trim()) return;
+  const s = getStudent(studentId);
+  s.pieces.push({ id: uid(), name: name.trim(), exercises: [] });
+  save(); render();
+}
+function removePiece(studentId, pieceId){
+  const s = getStudent(studentId);
+  s.pieces = s.pieces.filter(p=>p.id!==pieceId);
+  save(); render();
+}
+function addExercise(studentId, pieceId, name){
+  if(!name.trim()) return;
+  const p = getPiece(studentId, pieceId);
+  p.exercises.push({ id: uid(), name: name.trim(), steps: [], groups: [] });
+  save(); render();
+}
+function removeExercise(studentId, pieceId, exerciseId){
+  const p = getPiece(studentId, pieceId);
+  p.exercises = p.exercises.filter(e=>e.id!==exerciseId);
+  save(); render();
+}
+function addStep(studentId, pieceId, exerciseId, label, groupId, subGroupId, subSubGroupId, thisWeek){
+  if(!label.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: !!thisWeek, groupId: groupId || null, subGroupId: subGroupId || null, subSubGroupId: subSubGroupId || null });
+  save(); render();
+}
+function removeStep(studentId, pieceId, exerciseId, stepId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  ex.steps = ex.steps.filter(st=>st.id!==stepId);
+  save(); render();
+}
+function bucketKey(st){ return (st.groupId||'none') + '::' + (st.subGroupId||'none') + '::' + (st.subSubGroupId||'none'); }
+
+function moveInArray(arr, id, dir){
+  const idx = arr.findIndex(x=>x.id===id);
+  const j = dir==='up' ? idx-1 : idx+1;
+  if(idx<0 || j<0 || j>=arr.length) return false;
+  [arr[idx], arr[j]] = [arr[j], arr[idx]];
+  return true;
+}
+function movePiece(studentId, pieceId, dir){
+  const s = getStudent(studentId);
+  if(moveInArray(s.pieces, pieceId, dir)){ save(); render(); }
+}
+function moveExercise(studentId, pieceId, exerciseId, dir){
+  const p = getPiece(studentId, pieceId);
+  if(moveInArray(p.exercises, exerciseId, dir)){ save(); render(); }
+}
+function moveGroupOrder(studentId, pieceId, exerciseId, groupId, dir){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  if(moveInArray(ex.groups, groupId, dir)){ save(); render(); }
+}
+function moveSubgroupOrder(studentId, pieceId, exerciseId, groupId, subGroupId, dir){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  if(g && moveInArray(g.subgroups, subGroupId, dir)){ save(); render(); }
+}
+function moveSubSubgroupOrder(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId, dir){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId);
+  if(sg && moveInArray(sg.subsubgroups, subSubGroupId, dir)){ save(); render(); }
+}
+function moveStep(studentId, pieceId, exerciseId, stepId, dir){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const target = ex.steps.find(st=>st.id===stepId);
+  const key = bucketKey(target);
+  const bucket = ex.steps.filter(st=>bucketKey(st)===key);
+  const idx = bucket.findIndex(st=>st.id===stepId);
+  const neighborIdx = dir==='up' ? idx-1 : idx+1;
+  if(neighborIdx<0 || neighborIdx>=bucket.length) return;
+  const neighborId = bucket[neighborIdx].id;
+  const i = ex.steps.findIndex(st=>st.id===stepId);
+  const j = ex.steps.findIndex(st=>st.id===neighborId);
+  [ex.steps[i], ex.steps[j]] = [ex.steps[j], ex.steps[i]];
+  save(); render();
+}
+function addGroup(studentId, pieceId, exerciseId, name){
+  if(!name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  if(!ex.groups) ex.groups = [];
+  const newId = uid();
+  ex.groups.push({ id: newId, name: name.trim(), subgroups: [] });
+  state.collapsedGroups.add(newId);
+  save(); render();
+}
+function removeGroup(studentId, pieceId, exerciseId, groupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  ex.groups = (ex.groups||[]).filter(g=>g.id!==groupId);
+  ex.steps = ex.steps.filter(st=>st.groupId!==groupId);
+  save(); render();
+}
+function setStepGroup(studentId, pieceId, exerciseId, stepId, groupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const st = ex.steps.find(x=>x.id===stepId);
+  st.groupId = groupId || null;
+  st.subGroupId = null;
+  st.subSubGroupId = null;
+  save(); render();
+}
+function addSubgroup(studentId, pieceId, exerciseId, groupId, name){
+  if(!name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  if(!g.subgroups) g.subgroups = [];
+  const newId = uid();
+  g.subgroups.push({ id: newId, name: name.trim(), subsubgroups: [] });
+  state.collapsedSubgroups.add(newId);
+  save(); render();
+}
+function removeSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  g.subgroups = (g.subgroups||[]).filter(sg=>sg.id!==subGroupId);
+  ex.steps = ex.steps.filter(st=>!(st.groupId===groupId && st.subGroupId===subGroupId));
+  save(); render();
+}
+function setStepSubgroup(studentId, pieceId, exerciseId, stepId, subGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const st = ex.steps.find(x=>x.id===stepId);
+  st.subGroupId = subGroupId || null;
+  st.subSubGroupId = null;
+  save(); render();
+}
+function addSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, name){
+  if(!name.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = (g.subgroups||[]).find(x=>x.id===subGroupId);
+  if(!sg.subsubgroups) sg.subsubgroups = [];
+  const newId = uid();
+  sg.subsubgroups.push({ id: newId, name: name.trim() });
+  state.collapsedSubSubgroups.add(newId);
+  save(); render();
+}
+function removeSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const g = (ex.groups||[]).find(x=>x.id===groupId);
+  const sg = (g.subgroups||[]).find(x=>x.id===subGroupId);
+  sg.subsubgroups = (sg.subsubgroups||[]).filter(ssg=>ssg.id!==subSubGroupId);
+  ex.steps = ex.steps.filter(st=>!(st.groupId===groupId && st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId));
+  save(); render();
+}
+function setStepSubSubgroup(studentId, pieceId, exerciseId, stepId, subSubGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const st = ex.steps.find(x=>x.id===stepId);
+  st.subSubGroupId = subSubGroupId || null;
+  save(); render();
+}
+function setStatus(studentId, pieceId, exerciseId, stepId, status){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const st = ex.steps.find(x=>x.id===stepId);
+  st.status = status;
+  if(status==='locked_in') st.thisWeek = false;
+  save(); render();
+}
+function toggleThisWeek(studentId, pieceId, exerciseId, stepId){
+  const ex = getExercise(studentId, pieceId, exerciseId);
+  const st = ex.steps.find(x=>x.id===stepId);
+  if(st.status==='locked_in') return;
+  st.thisWeek = !st.thisWeek;
+  if(st.thisWeek){
+    state.collapsedPieces.delete(pieceId);
+    state.collapsedExercises.delete(exerciseId);
+    if(st.groupId) state.collapsedGroups.delete(st.groupId);
+    if(st.subGroupId) state.collapsedSubgroups.delete(st.subGroupId);
+    if(st.subSubGroupId) state.collapsedSubSubgroups.delete(st.subSubGroupId);
+  }
+  save(); render();
+}
+
+function buildMessage(studentId){
+  const s = getStudent(studentId);
+  if(!s) return '';
+  const STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
+  const exGroups = [];
+  let any = false;
+  (s.pieces||[]).forEach(p=>{
+    p.exercises.forEach(ex=>{
+      const flagged = ex.steps.filter(st=>st.thisWeek);
+      if(flagged.length===0) return;
+      const loc = `${p.name}: ${ex.name}`;
+      const eg = { loc, params: [] };
+
+      const toItem = st=>({ label: st.label, status: st.status });
+
+      const ungroupedItems = flagged.filter(st=>!st.groupId).map(toItem);
+      if(ungroupedItems.length) eg.params.push({ name: null, items: ungroupedItems, subparams: [] });
+
+      (ex.groups||[]).forEach(g=>{
+        const directItems = flagged.filter(st=>st.groupId===g.id && !st.subGroupId).map(toItem);
+        const subparams = [];
+        (g.subgroups||[]).forEach(sg=>{
+          const subDirectItems = flagged.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId).map(toItem);
+          const subtypes = [];
+          (sg.subsubgroups||[]).forEach(ssg=>{
+            const typeItems = flagged.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id).map(toItem);
+            if(typeItems.length) subtypes.push({ name: ssg.name, items: typeItems });
+          });
+          if(subDirectItems.length || subtypes.length) subparams.push({ name: sg.name, items: subDirectItems, subtypes });
+        });
+        if(directItems.length || subparams.length) eg.params.push({ name: g.name, items: directItems, subparams });
+      });
+
+      if(eg.params.length){ any = true; exGroups.push(eg); }
+    });
+  });
+  if(!any){
+    return `Nothing flagged "This Week" yet for ${s.name}. Toggle on the steps you want to assign, below.`;
+  }
+
+  const printItems = (items, indent)=>{
+    let out = '';
+    const groups = [];
+    items.forEach(it=>{
+      let g = groups.find(x=>x.status===it.status);
+      if(!g){ g = { status: it.status, labels: [] }; groups.push(g); }
+      g.labels.push(it.label);
+    });
+    groups.forEach(g=>{
+      if(g.labels.length===1){
+        out += `${indent}${STATUS_TAG[g.status]}: ${g.labels[0]}\n`;
+      } else {
+        out += `${indent}${STATUS_TAG[g.status]}:\n`;
+        g.labels.forEach(label=> out += `${indent}   ${label}\n`);
+      }
+    });
+    return out;
+  };
+
+  let msg = `Here's your assignment until our next lesson:\n\n`;
+  exGroups.forEach(eg=>{
+    msg += `🎵 ${eg.loc}\n`;
+    eg.params.forEach(pe=>{
+      const i1 = pe.name ? '   ' : '';
+      if(pe.name) msg += `${i1}${pe.name}\n`;
+      const i2 = pe.name ? '      ' : '   ';
+      msg += printItems(pe.items, i2);
+      pe.subparams.forEach(se=>{
+        msg += `${i2}${se.name}\n`;
+        const i3 = i2 + '   ';
+        msg += printItems(se.items, i3);
+        se.subtypes.forEach(te=>{
+          msg += `${i3}${te.name}\n`;
+          const i4 = i3 + '   ';
+          msg += printItems(te.items, i4);
+        });
+      });
+    });
+    msg += `\n`;
+  });
+  msg += `Key:\n`;
+  msg += `🌱 Waiting for submission: this week's new focus. Send it whenever it's ready.\n`;
+  msg += `⏸ Standby: hold off until I give the green light.\n`;
+  msg += `🔶 Almost there: got your video, just needs one or two more passes before it's locked in.\n`;
+  msg += `🔁 Review: already learned, keep it solid. Send these first.\n`;
+  msg += `✅ Locked In: nothing to send here, this one's holding steady, until further notice.\n\n`;
+  msg += `Send the review clips first, then anything new.\n`;
+  msg += `📌 Label each clip (e.g. "Review: Root Inversion") or just say the exercise name at the start of the video. Either works, I just need to know what I'm looking at.`;
+  return msg;
+}
+
+function firstName(s){ return (s.name||'').trim().split(/\s+/)[0] || s.name; }
+
+const BUILT_IN_SCRIPTS = [
+  {
+    key: 'why_this_system',
+    label: 'Why I use this system (purpose and pitfalls it avoids)',
+    build: (s)=> `Hey ${firstName(s)}, wanted to explain a bit about why I track things this way. Breaking each exercise or piece down into individual steps and variables lets me guide you through it piece by piece, instead of just saying "work on this" and hoping it lands, I can point to exactly what's next within it. There's also a real pitfall this helps avoid: without consistent video check-ins, it's easy to drift toward new material before you've actually got the last thing solid. This system keeps you accountable to actually show me yourself working through the material, and the reward for that is straightforward, as you show real proficiency, you unlock what's next.`
+  },
+  {
+    key: 'system_intro_camera',
+    label: 'Brief on-camera intro to the tracking system',
+    build: (s)=> `Hey ${firstName(s)}, quick heads up, I'm using a new system to track your assignments going forward. I'll be breaking things down into specific steps so I can tell you exactly what to work on and track your progress more precisely. I'm sending you a full written breakdown of exactly how it all works right after this, so keep an eye out for that, it'll cover everything you need to know.`
+  },
+  {
+    key: 'explain_segmentation',
+    label: 'Explaining the segmentation process (say in a video)',
+    build: (s)=> `Hey ${firstName(s)}, quick note on how I'm organizing your assignments going forward. Like with the diatonic 2nds across string pairs you sent me, I'm breaking exercises down into smaller pieces, so instead of just "work on this exercise," you'll get specific steps, like a string set, an interval size, ascending or descending, stuff like that. It just helps me pinpoint exactly what needs work and track your progress more precisely. So don't worry if things look more broken down than before, it's the same material, just organized more clearly.`
+  },
+  {
+    key: 'combined_video',
+    label: 'Sent multiple exercises in one video',
+    build: (s)=> `Hey ${firstName(s)}, thanks for sending that! I've organized each exercise into specific steps and parameters, so I can track things more precisely. Going forward, could you send each exercise as its own separate video instead of combining a few into one? It makes it a lot easier for me to review each one and give you accurate feedback. Same rule as always applies, label or say the name of each clip so I know exactly what I'm looking at.`
+  },
+  {
+    key: 'combined_steps_video',
+    label: 'Sent multiple steps within one exercise in one video',
+    build: (s)=> `Hey ${firstName(s)}, nice work, you're close! I noticed you combined a few steps into one video, like sending root, first, and second inversion all together. Going forward, could you send each individual step as its own separate clip instead? It helps me zero in on exactly which specific step needs attention, rather than trying to catch everything across one longer video. Same rule as always applies, just say or title each clip with the specific step you're demonstrating.`
+  },
+  {
+    key: 'question_no_video',
+    label: 'Question asked without a video',
+    build: (s)=> `Hey ${firstName(s)}, I appreciate the question! In general it's hard for me to answer accurately over text alone, I can't quite tell what you're doing without actually seeing it. Feel free to talk through your thinking out loud, but do it with the guitar in hand and show me what you mean as you go. That way I can see exactly where the question is coming from and give you something useful back.`
+  },
+  {
+    key: 'wants_new_no_submit',
+    label: "Wants something new, but hasn't submitted",
+    build: (s)=> `Hey ${firstName(s)}, I saw you're wanting to jump into something new, I love that energy! Before we do that though, I still need a video on what's currently assigned so I know it's solid. Once I've got that, we can talk about what's next. Send it whenever you get a chance, no rush, just wanted to flag it before we move forward.`
+  },
+  {
+    key: 'bad_week',
+    label: 'Had a bad practice week',
+    build: (s)=> `Hey ${firstName(s)}, thanks for letting me know practice didn't go how you wanted this week, that happens to everyone, seriously. No need to stress about it. Just send me whatever you did get to, even if it's rough, and we'll figure out where to go from there together. One off week doesn't set you back nearly as much as it feels like it does in the moment.`
+  },
+  {
+    key: 'finally_sent_video',
+    label: 'Reluctant student finally sent a video',
+    build: (s)=> `Hey ${firstName(s)}, really glad you sent that, thank you! Seeing you actually play it makes a real difference on my end. It means when we add new material, I know we're building on something that's actually solid, not just assuming it is, and it helps me gauge exactly what our next steps should be. It also lets me catch small things early, stuff that's easy to miss just from talking about it. No pressure going forward, just keep the videos coming whenever you're ready, it makes a real difference in how well I can help you.`
+  },
+  {
+    key: 'gone_quiet',
+    label: "Gone quiet, hasn't submitted in a while",
+    build: (s)=> `Hey ${firstName(s)}, haven't heard from you in a bit, just checking in! No judgment at all, life gets busy. Whenever you're ready, send whatever you've got, even if it's not much, and we'll pick back up from there. Let me know if anything's going on that's making it hard to get to practice, happy to adjust things if needed.`
+  },
+  {
+    key: 'wants_to_skip_ahead',
+    label: 'Wants to skip ahead / bored with current material',
+    build: (s)=> `Hey ${firstName(s)}, I hear you on wanting to move faster, and I love that you're eager! The quickest way to get there is showing me a solid handle on what's current, that's genuinely what unlocks the next thing. Send me a video whenever you're ready and let's see where you're at.`
+  },
+  {
+    key: 'regressed',
+    label: 'Review item came back shaky',
+    build: (s)=> `Hey ${firstName(s)}, thanks for sending that, I can tell you're still putting in work! This one's not quite where it was before though, so I'm going to move it back into active practice for a bit. Totally normal, this happens, it just means it needs a little more attention before it's back on autopilot.`
+  },
+  {
+    key: 'extension',
+    label: 'Asking for extra time',
+    build: (s)=> `Hey ${firstName(s)}, no problem at all, take the extra time you need. Just send whatever you've got whenever you're ready, there's no penalty for taking a bit longer, I'd rather see something solid than something rushed.`
+  },
+  {
+    key: 'frustrated',
+    label: 'Frustrated with lack of progress',
+    build: (s)=> `Hey ${firstName(s)}, I hear you, and I want you to know progress on guitar is almost never a straight line, it's normal to feel stuck sometimes even when you're actually improving. Let's talk it through at our next lesson, sometimes just naming what's frustrating helps me figure out how to adjust things for you.`
+  },
+  {
+    key: 'wants_new_song',
+    label: 'Wants to add a new piece/song',
+    build: (s)=> `Hey ${firstName(s)}, love that you want to bring in something new, let's talk about it at our next lesson so I can figure out how it fits with what we're already working on. In the meantime, keep sending videos on your current assignments so we don't lose momentum there.`
+  }
+];
+
+function buildWelcomeEmail(studentId){
+  const s = getStudent(studentId);
+  if(!s) return '';
+  return `Hey ${firstName(s)}!
+
+My name's Greg Fleischut, and I'll be your mentor with Sonora. I'm really looking forward to working with you!
+
+Here's everything you need to know to get started:
+
+Slack
+We'll use Slack to share materials, videos, and updates. Once you're set up, just send a quick message so I know everything's working smoothly.
+
+Booking Calendar
+Use this link to book future sessions:
+https://calendly.com/greg-learnwithsonora
+
+What Your Mentorship Looks Like
+We'll meet every two weeks for one-on-one lessons here:
+https://us06web.zoom.us/j/4055100269
+
+After each session, I'll leave you a structured practice plan for the week along with relevant materials and a recording of the lesson to review at your own pace.
+
+How I Track Your Practice
+Each week's plan is broken into steps you'll work through in order. Send me a video of each one, and based on what I see, I'll tell you what's next, you only move on once I've given the green light. The best way I can tell how you're doing is by actually hearing you play it, whether that's on video or live in our lesson, there's no way around that part. The more consistently you send stuff, the faster we can keep moving forward together, keeping in mind that progress isn't really about speed so much as building something solid that actually holds up, which is what builds you up to the next level.
+
+Every item sits in one of five stages:
+
+🌱 Waiting for submission: it's new, send a video whenever it's ready.
+⏸ Standby: coming up soon, hold off on recording it for now.
+🔶 Almost there: I've got your video, just needs one more pass.
+🔁 Review: you've already learned it, we're just keeping it fresh. This still means sending a video.
+✅ Locked In: nothing to send here, this one's holding steady, until further notice.
+
+Give yourself 2-3 days on an assignment, then send whatever you've got, rough edges and all. First takes are the point, not something to apologize for. And if something's still not clicking after about 10 minutes of practice, that's your cue to take a break and come back to it fresh later.
+
+I review videos Monday through Friday; anything sent Friday evening through Sunday gets reviewed the following Monday.
+
+Office Hours (Optional Drop-In)
+https://us06web.zoom.us/j/83480118645?pwd=dsgibQe313D7LgMHP31eO9q36gpJe9.1
+
+I also host open group sessions twice a week: open forum for students and guided practice routines led by me. It's also just a great hang and a chance to meet your fellow peers. You're already added to the Office Hours Slack channel and are welcome to join anytime:
+
+Mondays at 5 PM PST / 8 PM EST
+Wednesdays at 5 PM PST / 8 PM EST
+
+All of these links will be pinned in your Slack channel for easy access. Don't hesitate to reach out if you have any questions!
+
+Talk soon,
+Greg`;
+}
+
+function buildExplainerMessage(studentId){
+  const s = getStudent(studentId);
+  if(!s) return '';
+  return `Hey ${firstName(s)}! just a heads up that I'm using a new system to track your assignments each week. It keeps things organized, and it lets me tell you exactly what to work on next based on the videos you send me.
+
+After each lesson, I'll leave you with practice assignments broken into steps you'll work through in order. Send me a video of each one, and based on what I see, I'll tell you what's next, you only move on once I've given the green light. The best way I can tell how you're doing is by actually hearing you play it, whether that's on video or live in our lesson, there's no way around that part. The more consistently you send stuff, the faster we can keep moving forward together, keeping in mind that progress isn't really about speed so much as building something solid that actually holds up, which is what builds you up to the next level.
+
+Each thing you're working on falls into one of five spots:
+
+🌱 Waiting for submission: it's new, I haven't gotten a video yet. Whenever it's ready, send it.
+
+⏸ Standby: coming up, but don't touch it yet. I'll tell you when.
+
+🔶 Almost there: got your video, you're close, just needs another pass.
+
+🔁 Review: you've already got this one down, we're just keeping it sharp. Still means send a video.
+
+✅ Locked In: nothing to send here, this one's holding steady, until further notice.
+
+Give yourself 2-3 days on something, then send whatever you've got. Rough, hesitant, mistakes and all. First takes are the point, not something to apologize for. Waiting for it to feel perfect only slows your progress, since the sooner I see where you're at, the sooner I can help close the gap. Same idea as before, really: the more you send, the faster we move. If you're unsure it's good enough, send it anyway. I just need a snapshot of where you're at, not a Grammy-winning take.
+
+Just a note, no exercise should be practiced for more than about 10 minutes at a time, after 10 minutes take a break and come back to it later in the day or the next day.
+
+If you're sending more than one video, send the Review one first, then the new one.
+
+I review videos Monday through Friday. Anything sent Friday evening through Sunday gets reviewed the following Monday. Keep working on whatever you send until I get back to you.
+
+📌 One more thing: title each video with the exercise it's for when you send it, so I always know exactly what I'm looking at.`;
+}
+
+function escapeHTML(str){ const d=document.createElement('div'); d.innerText=str; return d.innerHTML; }
+function escapeAttr(str){ return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function startEdit(el, value){
+  el.style.overflow = 'visible';
+  el.style.textOverflow = 'clip';
+  el.style.whiteSpace = 'normal';
+  el.style.flex = '1';
+  el.style.minWidth = '0';
+  el.innerHTML = `<input class="inline-edit" style="min-width:220px;width:100%;box-sizing:border-box;" value="${escapeAttr(value)}">`;
+  const input = el.querySelector('input');
+  input.focus();
+  input.select();
+  let done = false;
+  const commit = ()=>{
+    if(done) return; done = true;
+    applyRename(el.dataset.edit, input.value);
+  };
+  const cancel = ()=>{
+    if(done) return; done = true;
+    render();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
+    if(e.key==='Escape'){ e.preventDefault(); cancel(); }
+  });
+}
+
+function applyRename(editKey, newVal){
+  const v = newVal.trim();
+  if(!v){ render(); return; }
+  const [type, ...ids] = editKey.split('|');
+  if(type==='student'){
+    const [sid] = ids;
+    getStudent(sid).name = v;
+  } else if(type==='piece'){
+    const [sid,pid] = ids;
+    getPiece(sid,pid).name = v;
+  } else if(type==='exercise'){
+    const [sid,pid,eid] = ids;
+    getExercise(sid,pid,eid).name = v;
+  } else if(type==='group'){
+    const [sid,pid,eid,gid] = ids;
+    const ex = getExercise(sid,pid,eid);
+    const g = (ex.groups||[]).find(x=>x.id===gid);
+    if(g) g.name = v;
+  } else if(type==='subgroup'){
+    const [sid,pid,eid,gid,sgid] = ids;
+    const ex = getExercise(sid,pid,eid);
+    const g = (ex.groups||[]).find(x=>x.id===gid);
+    const sg = g && (g.subgroups||[]).find(x=>x.id===sgid);
+    if(sg) sg.name = v;
+  } else if(type==='subsubgroup'){
+    const [sid,pid,eid,gid,sgid,ssgid] = ids;
+    const ex = getExercise(sid,pid,eid);
+    const g = (ex.groups||[]).find(x=>x.id===gid);
+    const sg = g && (g.subgroups||[]).find(x=>x.id===sgid);
+    const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===ssgid);
+    if(ssg) ssg.name = v;
+  } else if(type==='step'){
+    const [sid,pid,eid,stid] = ids;
+    const ex = getExercise(sid,pid,eid);
+    const st = ex.steps.find(x=>x.id===stid);
+    if(st) st.label = v;
+  } else if(type==='exerciseTemplate'){
+    const [tid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    if(t) t.name = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='exerciseTemplateTitle'){
+    const [tid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    if(t) t.title = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='tplPieceExercise'){
+    const [tid, eid] = ids;
+    const t = state.pieceTemplates.find(x=>x.id===tid);
+    const e = t && t.exercises.find(x=>x.id===eid);
+    if(e) e.name = v;
+    savePieceTemplates(); render();
+    return;
+  } else if(type==='tplExGroup'){
+    const [tid, gid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    const g = t && (t.groups||[]).find(x=>x.id===gid);
+    if(g) g.name = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='tplExSubgroup'){
+    const [tid, gid, sgid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    const g = t && (t.groups||[]).find(x=>x.id===gid);
+    const sg = g && (g.subgroups||[]).find(x=>x.id===sgid);
+    if(sg) sg.name = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='tplExSubsubgroup'){
+    const [tid, gid, sgid, ssgid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    const g = t && (t.groups||[]).find(x=>x.id===gid);
+    const sg = g && (g.subgroups||[]).find(x=>x.id===sgid);
+    const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===ssgid);
+    if(ssg) ssg.name = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='tplExStep'){
+    const [tid, stid] = ids;
+    const t = state.templates.find(x=>x.id===tid);
+    const st = t && (t.steps||[]).find(x=>x.id===stid);
+    if(st) st.label = v;
+    saveTemplates(); render();
+    return;
+  } else if(type==='tplParamSubgroup'){
+    const [tid, sgid] = ids;
+    const t = state.paramTemplates.find(x=>x.id===tid);
+    const sg = t && (t.subgroups||[]).find(x=>x.id===sgid);
+    if(sg) sg.name = v;
+    saveParamTemplates(); render();
+    return;
+  } else if(type==='tplParamSubsubgroup'){
+    const [tid, sgid, ssgid] = ids;
+    const t = state.paramTemplates.find(x=>x.id===tid);
+    const sg = t && (t.subgroups||[]).find(x=>x.id===sgid);
+    const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===ssgid);
+    if(ssg) ssg.name = v;
+    saveParamTemplates(); render();
+    return;
+  } else if(type==='tplParamStep'){
+    const [tid, stid] = ids;
+    const t = state.paramTemplates.find(x=>x.id===tid);
+    const st = t && (t.steps||[]).find(x=>x.id===stid);
+    if(st) st.label = v;
+    saveParamTemplates(); render();
+    return;
+  } else if(type==='tplSubparamSubsubgroup'){
+    const [tid, ssgid] = ids;
+    const t = state.subParamTemplates.find(x=>x.id===tid);
+    const ssg = t && (t.subsubgroups||[]).find(x=>x.id===ssgid);
+    if(ssg) ssg.name = v;
+    saveSubParamTemplates(); render();
+    return;
+  } else if(type==='tplSubparamStep'){
+    const [tid, stid] = ids;
+    const t = state.subParamTemplates.find(x=>x.id===tid);
+    const st = t && (t.steps||[]).find(x=>x.id===stid);
+    if(st) st.label = v;
+    saveSubParamTemplates(); render();
+    return;
+  } else if(type==='tplSubtypeStep'){
+    const [tid, stid] = ids;
+    const t = state.subTypeTemplates.find(x=>x.id===tid);
+    const st = t && (t.steps||[]).find(x=>x.id===stid);
+    if(st) st.label = v;
+    saveSubTypeTemplates(); render();
+    return;
+  } else if(type==='subTypeTemplate'){
+    const [tid] = ids;
+    const t = state.subTypeTemplates.find(x=>x.id===tid);
+    if(t) t.name = v;
+    saveSubTypeTemplates(); render();
+    return;
+  } else if(type==='subTypeTemplateTitle'){
+    const [tid] = ids;
+    const t = state.subTypeTemplates.find(x=>x.id===tid);
+    if(t) t.title = v;
+    saveSubTypeTemplates(); render();
+    return;
+  } else if(type==='paramTemplateTitle'){
+    const [tid] = ids;
+    const t = state.paramTemplates.find(x=>x.id===tid);
+    if(t) t.title = v;
+    saveParamTemplates(); render();
+    return;
+  } else if(type==='subParamTemplateTitle'){
+    const [tid] = ids;
+    const t = state.subParamTemplates.find(x=>x.id===tid);
+    if(t) t.title = v;
+    saveSubParamTemplates(); render();
+    return;
+  } else if(type==='scriptTitle'){
+    const [scid] = ids;
+    const sc = state.customScripts.find(x=>x.id===scid);
+    if(sc) sc.title = v;
+    saveCustomScripts(); render();
+    return;
+  } else if(type==='pieceTemplate'){
+    const [tid] = ids;
+    const t = state.pieceTemplates.find(x=>x.id===tid);
+    if(t) t.name = v;
+    savePieceTemplates(); render();
+    return;
+  } else if(type==='pieceTemplateTitle'){
+    const [tid] = ids;
+    const t = state.pieceTemplates.find(x=>x.id===tid);
+    if(t) t.title = v;
+    savePieceTemplates(); render();
+    return;
+  } else if(type==='paramTemplate'){
+    const [tid] = ids;
+    const t = state.paramTemplates.find(x=>x.id===tid);
+    if(t) t.name = v;
+    saveParamTemplates(); render();
+    return;
+  } else if(type==='subParamTemplate'){
+    const [tid] = ids;
+    const t = state.subParamTemplates.find(x=>x.id===tid);
+    if(t) t.name = v;
+    saveSubParamTemplates(); render();
+    return;
+  }
+  save(); render();
+}
+
+/* ---------- Render ---------- */
+
+function tplTreeRow(tag, tagLabel, name, editKey){
+  const nameHtml = editKey
+    ? `<span class="tpltree-name editable" data-edit="${editKey}" title="Double-click to edit">${escapeHTML(name)}</span>`
+    : `<span class="tpltree-name">${escapeHTML(name)}</span>`;
+  return `<div class="tpltree-row"><span class="tpltree-tag ${tag}">${tagLabel}</span>${nameHtml}</div>`;
+}
+function tplStepRows(steps, editPrefix){
+  return steps.map(st=> tplTreeRow('step','Step', st.label, editPrefix ? `${editPrefix}|${st.id}` : null)).join('');
+}
+
+function renderExerciseTemplateTree(t){
+  let html = tplStepRows((t.steps||[]).filter(st=>!st.groupId), `tplExStep|${t.id}`);
+  (t.groups||[]).forEach(g=>{
+    let inner = tplStepRows((t.steps||[]).filter(st=>st.groupId===g.id && !st.subGroupId), `tplExStep|${t.id}`);
+    (g.subgroups||[]).forEach(sg=>{
+      let subInner = tplStepRows((t.steps||[]).filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId), `tplExStep|${t.id}`);
+      (sg.subsubgroups||[]).forEach(ssg=>{
+        const typeInner = tplStepRows((t.steps||[]).filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id), `tplExStep|${t.id}`);
+        subInner += `<div class="subsubgroup-block">${tplTreeRow('subtype','Sub-type', ssg.name, `tplExSubsubgroup|${t.id}|${g.id}|${sg.id}|${ssg.id}`)}${typeInner}</div>`;
+      });
+      inner += `<div class="subgroup-block">${tplTreeRow('subparam','Sub-parameter', sg.name, `tplExSubgroup|${t.id}|${g.id}|${sg.id}`)}${subInner}</div>`;
+    });
+    html += `<div class="group-block">${tplTreeRow('param','Parameter', g.name, `tplExGroup|${t.id}|${g.id}`)}${inner}</div>`;
+  });
+  return `${tplTreeRow('exercise','Exercise', t.name, `exerciseTemplate|${t.id}`)}${html}`;
+}
+
+function renderPieceTemplateTree(t){
+  const html = (t.exercises||[]).map(e=> tplTreeRow('exercise','Exercise', e.name, `tplPieceExercise|${t.id}|${e.id}`)).join('');
+  return `${tplTreeRow('piece','Piece', t.name, `pieceTemplate|${t.id}`)}${html || '<div class="hint">No exercises in this template.</div>'}`;
+}
+
+function renderParamTemplateTree(t){
+  let inner = tplStepRows((t.steps||[]).filter(st=>!st.subGroupId), `tplParamStep|${t.id}`);
+  (t.subgroups||[]).forEach(sg=>{
+    let subInner = tplStepRows((t.steps||[]).filter(st=>st.subGroupId===sg.id && !st.subSubGroupId), `tplParamStep|${t.id}`);
+    (sg.subsubgroups||[]).forEach(ssg=>{
+      const typeInner = tplStepRows((t.steps||[]).filter(st=>st.subGroupId===sg.id && st.subSubGroupId===ssg.id), `tplParamStep|${t.id}`);
+      subInner += `<div class="subsubgroup-block">${tplTreeRow('subtype','Sub-type', ssg.name, `tplParamSubsubgroup|${t.id}|${sg.id}|${ssg.id}`)}${typeInner}</div>`;
+    });
+    inner += `<div class="subgroup-block">${tplTreeRow('subparam','Sub-parameter', sg.name, `tplParamSubgroup|${t.id}|${sg.id}`)}${subInner}</div>`;
+  });
+  return `<div class="group-block" style="margin-top:0;">${tplTreeRow('param','Parameter', t.name, `paramTemplate|${t.id}`)}${inner}</div>`;
+}
+
+function renderSubParamTemplateTree(t){
+  let inner = tplStepRows((t.steps||[]).filter(st=>!st.subSubGroupId), `tplSubparamStep|${t.id}`);
+  (t.subsubgroups||[]).forEach(ssg=>{
+    const typeInner = tplStepRows((t.steps||[]).filter(st=>st.subSubGroupId===ssg.id), `tplSubparamStep|${t.id}`);
+    inner += `<div class="subsubgroup-block">${tplTreeRow('subtype','Sub-type', ssg.name, `tplSubparamSubsubgroup|${t.id}|${ssg.id}`)}${typeInner}</div>`;
+  });
+  return `<div class="subgroup-block" style="margin-top:0;">${tplTreeRow('subparam','Sub-parameter', t.name, `subParamTemplate|${t.id}`)}${inner}</div>`;
+}
+
+function renderSubTypeTemplateTree(t){
+  const inner = tplStepRows(t.steps||[], `tplSubtypeStep|${t.id}`);
+  return `<div class="subsubgroup-block" style="margin-top:0;">${tplTreeRow('subtype','Sub-type', t.name, `subTypeTemplate|${t.id}`)}${inner}</div>`;
+}
+
+function renderExTplEditor(t){
+  let html = (t.steps||[]).filter(st=>!st.groupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplExStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-ex-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+  (t.groups||[]).forEach(g=>{
+    let inner = (t.steps||[]).filter(st=>st.groupId===g.id && !st.subGroupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplExStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-ex-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+    (g.subgroups||[]).forEach(sg=>{
+      let subInner = (t.steps||[]).filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplExStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-ex-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+      (sg.subsubgroups||[]).forEach(ssg=>{
+        const typeInner = (t.steps||[]).filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplExStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-ex-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+        subInner += `<div class="subsubgroup-block">
+          ${tplTreeRow('subtype','Sub-type', ssg.name, `tplExSubsubgroup|${t.id}|${g.id}|${sg.id}|${ssg.id}`)}
+          <button class="btn-ghost btn-tiny" data-ex-tpl-remove-subtype="${t.id}|${g.id}|${sg.id}|${ssg.id}">Remove sub-type</button>
+          ${typeInner}
+          <div class="tpl-editor-add-row"><input placeholder="New step" id="exTplStepIn-${t.id}-${g.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}|${sg.id}|${ssg.id}">+ Add step</button></div>
+        </div>`;
+      });
+      inner += `<div class="subgroup-block">
+        ${tplTreeRow('subparam','Sub-parameter', sg.name, `tplExSubgroup|${t.id}|${g.id}|${sg.id}`)}
+        <button class="btn-ghost btn-tiny" data-ex-tpl-remove-subparam="${t.id}|${g.id}|${sg.id}">Remove sub-parameter</button>
+        ${subInner}
+        <div class="tpl-editor-add-row">
+          <input placeholder="New sub-type" id="exTplSubtypeIn-${t.id}-${g.id}-${sg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-subtype="${t.id}|${g.id}|${sg.id}">+ Add sub-type</button>
+          <input placeholder="New step (direct)" id="exTplDirectStepIn-${t.id}-${g.id}-${sg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}|${sg.id}|">+ Add step</button>
+        </div>
+      </div>`;
+    });
+    html += `<div class="group-block">
+      ${tplTreeRow('param','Parameter', g.name, `tplExGroup|${t.id}|${g.id}`)}
+      <button class="btn-ghost btn-tiny" data-ex-tpl-remove-param="${t.id}|${g.id}">Remove parameter</button>
+      ${inner}
+      <div class="tpl-editor-add-row">
+        <input placeholder="New sub-parameter" id="exTplSubparamIn-${t.id}-${g.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-subparam="${t.id}|${g.id}">+ Add sub-parameter</button>
+        <input placeholder="New step (direct)" id="exTplDirectStepIn2-${t.id}-${g.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}||">+ Add step</button>
+      </div>
+    </div>`;
+  });
+  html += `<div class="tpl-editor-add-row"><input placeholder="New parameter" id="exTplParamIn-${t.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-param="${t.id}">+ Add parameter</button></div>`;
+  return html;
+}
+
+function renderParamTplEditor(t){
+  let inner = (t.steps||[]).filter(st=>!st.subGroupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplParamStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-param-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+  (t.subgroups||[]).forEach(sg=>{
+    let subInner = (t.steps||[]).filter(st=>st.subGroupId===sg.id && !st.subSubGroupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplParamStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-param-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+    (sg.subsubgroups||[]).forEach(ssg=>{
+      const typeInner = (t.steps||[]).filter(st=>st.subGroupId===sg.id && st.subSubGroupId===ssg.id).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplParamStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-param-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+      subInner += `<div class="subsubgroup-block">
+        ${tplTreeRow('subtype','Sub-type', ssg.name, `tplParamSubsubgroup|${t.id}|${sg.id}|${ssg.id}`)}
+        <button class="btn-ghost btn-tiny" data-param-tpl-remove-subtype="${t.id}|${sg.id}|${ssg.id}">Remove sub-type</button>
+        ${typeInner}
+        <div class="tpl-editor-add-row"><input placeholder="New step" id="paramTplStepIn-${t.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}|${sg.id}|${ssg.id}">+ Add step</button></div>
+      </div>`;
+    });
+    inner += `<div class="subgroup-block">
+      ${tplTreeRow('subparam','Sub-parameter', sg.name, `tplParamSubgroup|${t.id}|${sg.id}`)}
+      <button class="btn-ghost btn-tiny" data-param-tpl-remove-subparam="${t.id}|${sg.id}">Remove sub-parameter</button>
+      ${subInner}
+      <div class="tpl-editor-add-row">
+        <input placeholder="New sub-type" id="paramTplSubtypeIn-${t.id}-${sg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-subtype="${t.id}|${sg.id}">+ Add sub-type</button>
+        <input placeholder="New step (direct)" id="paramTplDirectStepIn-${t.id}-${sg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}|${sg.id}|">+ Add step</button>
+      </div>
+    </div>`;
+  });
+  return `${inner}
+    <div class="tpl-editor-add-row">
+      <input placeholder="New sub-parameter" id="paramTplSubparamIn-${t.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-subparam="${t.id}">+ Add sub-parameter</button>
+      <input placeholder="New step (direct)" id="paramTplDirectStepIn2-${t.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}||">+ Add step</button>
+    </div>`;
+}
+
+function renderSubParamTplEditor(t){
+  let inner = (t.steps||[]).filter(st=>!st.subSubGroupId).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplSubparamStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-subparam-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+  (t.subsubgroups||[]).forEach(ssg=>{
+    const typeInner = (t.steps||[]).filter(st=>st.subSubGroupId===ssg.id).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplSubparamStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-subparam-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+    inner += `<div class="subsubgroup-block">
+      ${tplTreeRow('subtype','Sub-type', ssg.name, `tplSubparamSubsubgroup|${t.id}|${ssg.id}`)}
+      <button class="btn-ghost btn-tiny" data-subparam-tpl-remove-subtype="${t.id}|${ssg.id}">Remove sub-type</button>
+      ${typeInner}
+      <div class="tpl-editor-add-row"><input placeholder="New step" id="subparamTplStepIn-${t.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-step="${t.id}|${ssg.id}">+ Add step</button></div>
+    </div>`;
+  });
+  return `${inner}
+    <div class="tpl-editor-add-row">
+      <input placeholder="New sub-type" id="subparamTplSubtypeIn-${t.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-subtype="${t.id}">+ Add sub-type</button>
+      <input placeholder="New step (direct)" id="subparamTplDirectStepIn-${t.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-step="${t.id}|">+ Add step</button>
+    </div>`;
+}
+
+function renderSubTypeTplEditor(t){
+  const inner = (t.steps||[]).map(st=>`<div class="step-row"><div class="step-label editable" data-edit="tplSubtypeStep|${t.id}|${st.id}" title="Double-click to rename">${escapeHTML(st.label)}</div><button class="btn-ghost btn-tiny" data-subtype-tpl-remove-step="${t.id}|${st.id}">Remove</button></div>`).join('');
+  return `${inner}
+    <div class="tpl-editor-add-row"><input placeholder="New step" id="subtypeTplStepIn-${t.id}"><button class="btn-primary btn-tiny" data-subtype-tpl-add-step="${t.id}">+ Add step</button></div>`;
+}
+
+function renderTemplateEditorOverlay(){
+  const mode = state.templateEditMode;
+  if(!mode) return '';
+  const t = findTpl(mode.type, mode.tid);
+  if(!t){ state.templateEditMode = null; return ''; }
+  const typeLabel = { exercise: 'Exercise Template', param: 'Parameter Template', subparam: 'Sub-parameter Template', subtype: 'Sub-type Template' }[mode.type];
+  const bodyFn = { exercise: renderExTplEditor, param: renderParamTplEditor, subparam: renderSubParamTplEditor, subtype: renderSubTypeTplEditor }[mode.type];
+  return `
+    <div class="tpl-editor-overlay" id="tplEditorOverlay">
+      <div class="tpl-editor-modal">
+        <div class="tpl-editor-header">
+          <div>
+            <div class="tpl-editor-title">${escapeHTML(t.title || t.name)}</div>
+            <div class="hint">${typeLabel} — add, rename, or remove anything below. Changes save immediately.</div>
+          </div>
+          <button class="btn-ghost btn-tiny" id="closeTplEditorBtn">Close</button>
+        </div>
+        ${bodyFn(t)}
+      </div>
+    </div>`;
+}
+
+function groupTemplatesBySource(items, labelFn){
+  const groups = [];
+  items.forEach(t=>{
+    const label = labelFn(t);
+    let g = groups.find(x=>x.label===label);
+    if(!g){ g = { label, items: [] }; groups.push(g); }
+    g.items.push(t);
+  });
+  return groups;
+}
+function renderGroupedTemplateRows(items, labelFn, rowFn){
+  const groups = groupTemplatesBySource(items, labelFn);
+  return groups.map(g=>`<div class="tpl-source-header">${escapeHTML(g.label)}</div>${g.items.map(rowFn).join('')}`).join('');
+}
+
+function assignTemplateSource(collectionName, templateId, exerciseName){
+  if(!exerciseName) return;
+  const t = state[collectionName].find(x=>x.id===templateId);
+  if(!t) return;
+  t.sourceExercise = exerciseName;
+  if(collectionName==='paramTemplates') saveParamTemplates();
+  else if(collectionName==='subParamTemplates') saveSubParamTemplates();
+  else if(collectionName==='subTypeTemplates') saveSubTypeTemplates();
+  render();
+}
+function bulkAssignOrphanedTemplateSource(exerciseName){
+  if(!exerciseName) return;
+  let touchedParam = false, touchedSubParam = false, touchedSubType = false;
+  state.paramTemplates.forEach(t=>{ if(!t.sourceExercise){ t.sourceExercise = exerciseName; touchedParam = true; } });
+  state.subParamTemplates.forEach(t=>{ if(!t.sourceExercise){ t.sourceExercise = exerciseName; touchedSubParam = true; } });
+  state.subTypeTemplates.forEach(t=>{ if(!t.sourceExercise){ t.sourceExercise = exerciseName; touchedSubType = true; } });
+  if(touchedParam) saveParamTemplates();
+  if(touchedSubParam) saveSubParamTemplates();
+  if(touchedSubType) saveSubTypeTemplates();
+  render();
+}
+
+function templateRowHTML(t, editKey, meta, actionsHtml, treeFn, displayTitle, typeTag){
+  const isRowExpanded = state.collapsedTemplateRows.has(t.id);
+  const title = displayTitle !== undefined ? displayTitle : t.name;
+  const tagHtml = typeTag ? `<span class="tpltree-tag ${typeTag.cls}" style="margin-right:6px;">${typeTag.label}</span>` : '';
+  return `
+    <div class="tplrow-wrap">
+      <div class="list-row">
+        <div style="display:flex;align-items:flex-start;gap:6px;flex:1;min-width:0;">
+          <button class="tplrow-toggle" style="flex-shrink:0;" data-toggle-tplrow="${t.id}">${isRowExpanded?'▾':'▸'}</button>
+          <div style="flex:1;min-width:140px;">
+            <div class="list-row-name editable" data-edit="${editKey}" title="Double-click to rename">${tagHtml}${escapeHTML(title)}</div>
+            <div class="list-row-meta">${meta}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0;">${actionsHtml}</div>
+      </div>
+      ${isRowExpanded ? `<div class="tpltree">${treeFn(t)}</div>` : ''}
+    </div>`;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  if(!state.loaded){ root.innerHTML = `<div style="padding:40px;color:var(--string);">Loading…</div>`; return; }
+
+  const chips = state.students.map(s=>`
+    <div class="student-chip ${s.id===state.selected?'active':''}" data-select="${s.id}">
+      <span class="editable" data-edit="student|${s.id}" title="Double-click to rename">${escapeHTML(s.name)}</span><span class="chip-x" data-remove-student="${s.id}">×</span>
+    </div>`).join('');
+
+  let body = '';
+  const student = state.selected ? getStudent(state.selected) : null;
+
+  if(!state.students.length){
+    body = `<div class="empty">Add your first student above to get started.</div>`;
+  } else if(student){
+    if(!student.pieces) student.pieces = [];
+
+    const stepRowHTML = (p, ex, st)=>{
+      const key = bucketKey(st);
+      const bucket = ex.steps.filter(s2=>bucketKey(s2)===key);
+      const idx = bucket.findIndex(s2=>s2.id===st.id);
+      const isFirst = idx===0, isLast = idx===bucket.length-1;
+      const groupOptions = `<option value="">No parameter</option>` + (ex.groups||[]).map(g=>`<option value="${g.id}" ${st.groupId===g.id?'selected':''}>${escapeHTML(g.name)}</option>`).join('');
+      const path = `${student.id}|${p.id}|${ex.id}|${st.id}`;
+      const parentGroup = st.groupId ? (ex.groups||[]).find(g=>g.id===st.groupId) : null;
+      let subgroupSelectHTML = '';
+      if(parentGroup && parentGroup.subgroups && parentGroup.subgroups.length){
+        const subOptions = `<option value="">No subparameter</option>` + parentGroup.subgroups.map(sg=>`<option value="${sg.id}" ${st.subGroupId===sg.id?'selected':''}>${escapeHTML(sg.name)}</option>`).join('');
+        subgroupSelectHTML = `<select class="group-select" data-set-subgroup="${path}">${subOptions}</select>`;
+      }
+      const parentSubgroup = (parentGroup && st.subGroupId) ? (parentGroup.subgroups||[]).find(sg=>sg.id===st.subGroupId) : null;
+      let subsubgroupSelectHTML = '';
+      if(parentSubgroup && parentSubgroup.subsubgroups && parentSubgroup.subsubgroups.length){
+        const subSubOptions = `<option value="">No sub-type</option>` + parentSubgroup.subsubgroups.map(ssg=>`<option value="${ssg.id}" ${st.subSubGroupId===ssg.id?'selected':''}>${escapeHTML(ssg.name)}</option>`).join('');
+        subsubgroupSelectHTML = `<select class="subsubgroup-select" data-set-subsubgroup="${path}">${subSubOptions}</select>`;
+      }
+      return `
+        <div class="step-row ${st.thisWeek?'in-week':''}">
+          <div class="step-order">
+            <button class="order-btn" data-move="up" data-path="${path}" ${isFirst?'disabled':''}>▲</button>
+            <button class="order-btn" data-move="down" data-path="${path}" ${isLast?'disabled':''}>▼</button>
+          </div>
+          <div class="step-dot ${st.status}"></div>
+          <div class="step-label editable" data-edit="step|${path}" title="Double-click to rename">${escapeHTML(st.label)}</div>
+          <select class="group-select" data-set-group="${path}">${groupOptions}</select>
+          ${subgroupSelectHTML}
+          ${subsubgroupSelectHTML}
+          <div class="status-group">
+            ${STATUS.map(s=>`<div class="status-btn ${st.status===s?'sel-'+s:''}" data-setstatus="${path}|${s}">${STATUS_LABEL[s]}</div>`).join('')}
+          </div>
+          ${st.status==='locked_in' ? `<div class="week-toggle" style="opacity:.5;cursor:default;">✅ Locked</div>` : `<div class="week-toggle ${st.thisWeek?'on':''}" data-toggle-week="${path}">${st.thisWeek?'✓ This week':'This week'}</div>`}
+          <div class="step-remove" data-remove-step="${path}">×</div>
+        </div>
+      `;
+    };
+
+    const exerciseBlockHTML = (p, ex)=>{
+      if(!ex.groups) ex.groups = [];
+      const ungrouped = ex.steps.filter(st=>!st.groupId);
+      const ungroupedHTML = ungrouped.map(st=>stepRowHTML(p, ex, st)).join('');
+      const groupSections = ex.groups.map((g, gIdx)=>{
+        if(!g.subgroups) g.subgroups = [];
+        const directSteps = ex.steps.filter(st=>st.groupId===g.id && !st.subGroupId);
+        const directHTML = directSteps.map(st=>stepRowHTML(p, ex, st)).join('');
+        const subSections = g.subgroups.map((sg, sgIdx)=>{
+          if(!sg.subsubgroups) sg.subsubgroups = [];
+          const directSubSteps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId);
+          const directSubHTML = directSubSteps.map(st=>stepRowHTML(p, ex, st)).join('');
+          const subSubSections = sg.subsubgroups.map((ssg, ssgIdx)=>{
+            const steps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id);
+            const isSSCollapsed = state.collapsedSubSubgroups.has(ssg.id);
+            const ssSummary = `${steps.length} step${steps.length===1?'':'s'}`;
+            const ssPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}`;
+            return `
+              <div class="subsubgroup-block">
+                <div class="subsubgroup-head">
+                  <div class="step-order">
+                    <button class="order-btn" data-move-subsubgroup="up|${ssPath}" ${ssgIdx===0?'disabled':''}>▲</button>
+                    <button class="order-btn" data-move-subsubgroup="down|${ssPath}" ${ssgIdx===sg.subsubgroups.length-1?'disabled':''}>▼</button>
+                  </div>
+                  <div class="subsubgroup-head-left" data-toggle-subsubgroup="${ssg.id}">
+                    <button class="subsubgroup-collapse-btn">${isSSCollapsed?'▸':'▾'}</button>
+                    <span class="subsubgroup-name editable" data-edit="subsubgroup|${ssPath}" title="Double-click to rename">${escapeHTML(ssg.name)}</span>
+                    ${isSSCollapsed ? `<div class="subsubgroup-summary">${ssSummary}</div>` : ''}
+                  </div>
+                  <button class="btn-ghost btn-tiny" data-save-subtype-template="${ssPath}">Save as Template</button>
+                  <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
+                </div>
+                ${isSSCollapsed ? '' : (steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>')}
+              </div>`;
+          }).join('');
+          const totalStepsInSub = directSubSteps.length + sg.subsubgroups.reduce((n,ssg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id).length,0);
+          const isSubCollapsed = state.collapsedSubgroups.has(sg.id);
+          const subSummary = `${totalStepsInSub} step${totalStepsInSub===1?'':'s'}`;
+          const sgPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}`;
+          return `
+            <div class="subgroup-block">
+              <div class="subgroup-head">
+                <div class="step-order">
+                  <button class="order-btn" data-move-subgroup="up|${sgPath}" ${sgIdx===0?'disabled':''}>▲</button>
+                  <button class="order-btn" data-move-subgroup="down|${sgPath}" ${sgIdx===g.subgroups.length-1?'disabled':''}>▼</button>
+                </div>
+                <div class="subgroup-head-left" data-toggle-subgroup="${sg.id}">
+                  <button class="subgroup-collapse-btn">${isSubCollapsed?'▸':'▾'}</button>
+                  <span class="subgroup-name editable" data-edit="subgroup|${sgPath}" title="Double-click to rename">${escapeHTML(sg.name)}</span>
+                  ${isSubCollapsed ? `<div class="subgroup-summary">${subSummary}</div>` : ''}
+                </div>
+                <button class="btn-ghost btn-tiny" data-save-subparam-template="${sgPath}">Save as Template</button>
+                <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
+              </div>
+              ${isSubCollapsed ? '' : `
+                ${directSubHTML || (sg.subsubgroups.length ? '' : '<div class="hint">No steps yet.</div>')}
+                ${subSubSections}
+                <div class="add-subsubgroup-row">
+                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}">
+                  <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
+                </div>
+              `}
+            </div>`;
+        }).join('');
+        const totalStepsInGroup = directSteps.length + g.subgroups.reduce((n,sg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id).length,0);
+        const isGroupCollapsed = state.collapsedGroups.has(g.id);
+        const groupSummary = `${totalStepsInGroup} step${totalStepsInGroup===1?'':'s'}`;
+        const gPath = `${student.id}|${p.id}|${ex.id}|${g.id}`;
+        return `
+          <div class="group-block">
+            <div class="group-head">
+              <div class="step-order">
+                <button class="order-btn" data-move-group="up|${gPath}" ${gIdx===0?'disabled':''}>▲</button>
+                <button class="order-btn" data-move-group="down|${gPath}" ${gIdx===ex.groups.length-1?'disabled':''}>▼</button>
+              </div>
+              <div class="group-head-left" data-toggle-group="${g.id}">
+                <button class="group-collapse-btn">${isGroupCollapsed?'▸':'▾'}</button>
+                <span class="group-name editable" data-edit="group|${gPath}" title="Double-click to rename">${escapeHTML(g.name)}</span>
+                ${isGroupCollapsed ? `<div class="group-summary">${groupSummary}</div>` : ''}
+              </div>
+              <button class="btn-ghost btn-tiny" data-save-param-template="${gPath}">Save as Template</button>
+              <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
+            </div>
+            ${isGroupCollapsed ? '' : `
+              ${directHTML || (g.subgroups.length ? '' : '<div class="hint">No steps in this parameter yet.</div>')}
+              ${subSections}
+              <div class="add-subgroup-row">
+                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}">
+                <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
+              </div>
+            `}
+          </div>`;
+      }).join('');
+
+      const isCollapsed = state.collapsedExercises.has(ex.id);
+      const stepCount = ex.steps.length;
+      const summary = `${(ex.groups||[]).length} param${(ex.groups||[]).length===1?'':'s'} · ${stepCount} step${stepCount===1?'':'s'}`;
+      const exPath = `${student.id}|${p.id}|${ex.id}`;
+      const exIdx = p.exercises.findIndex(e=>e.id===ex.id);
+
+      return `
+        <div class="exercise-block ${isCollapsed?'collapsed':''}">
+          <div class="exercise-head">
+            <div class="step-order">
+              <button class="order-btn" data-move-exercise="up|${exPath}" ${exIdx===0?'disabled':''}>▲</button>
+              <button class="order-btn" data-move-exercise="down|${exPath}" ${exIdx===p.exercises.length-1?'disabled':''}>▼</button>
+            </div>
+            <div class="exercise-head-left" data-toggle-exercise="${ex.id}">
+              <button class="exercise-collapse-btn">${isCollapsed?'▸':'▾'}</button>
+              <div class="exercise-name editable" data-edit="exercise|${exPath}" title="Double-click to rename">${escapeHTML(ex.name)}</div>
+              ${isCollapsed ? `<div class="exercise-summary">${summary}</div>` : ''}
+            </div>
+            <button class="btn-ghost btn-tiny" data-save-template="${exPath}">Save as Template</button>
+            <button class="btn-ghost btn-tiny" data-remove-exercise="${exPath}">Remove exercise</button>
+          </div>
+          ${isCollapsed ? '' : `
+            ${ungroupedHTML || (ex.groups.length ? '' : '<div class="hint">No steps yet — add the first one below.</div>')}
+            ${groupSections}
+            <div class="add-step-row">
+              <input placeholder="Add step" id="stepinput-${ex.id}">
+              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}">
+                <option value="">No parameter</option>
+                ${ex.groups.map(g=>`<option value="${g.id}">${escapeHTML(g.name)}</option>`).join('')}
+              </select>
+              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled>
+                <option value="">No subparameter</option>
+              </select>
+              <select id="stepsubsubgroup-${ex.id}" disabled>
+                <option value="">No sub-type</option>
+              </select>
+              <button class="btn-primary btn-tiny" data-add-step="${student.id}|${p.id}|${ex.id}">Add step</button>
+            </div>
+            <div class="hint">Pick parameter → subparameter → sub-type before adding, and the step lands directly where it belongs.</div>
+            <div class="add-group-row">
+              <input placeholder="New parameter, e.g. String set, Position" id="groupinput-${ex.id}">
+              <button class="btn-ghost btn-tiny" data-add-group="${student.id}|${p.id}|${ex.id}">Add parameter</button>
+            </div>
+          `}
+        </div>`;
+    };
+
+    const pieceBlocksHTML = student.pieces.map((p, pIdx)=>{
+      const isCollapsed = state.collapsedPieces.has(p.id);
+      const exBlocks = p.exercises.map(ex=>exerciseBlockHTML(p, ex)).join('');
+      const stepCount = p.exercises.reduce((n,ex)=>n+ex.steps.length,0);
+      const summary = `${p.exercises.length} exercise${p.exercises.length===1?'':'s'} · ${stepCount} step${stepCount===1?'':'s'}`;
+      const pPath = `${student.id}|${p.id}`;
+      return `
+        <div class="piece-block ${isCollapsed?'collapsed':''}">
+          <div class="piece-head">
+            <div class="step-order">
+              <button class="order-btn" data-move-piece="up|${pPath}" ${pIdx===0?'disabled':''}>▲</button>
+              <button class="order-btn" data-move-piece="down|${pPath}" ${pIdx===student.pieces.length-1?'disabled':''}>▼</button>
+            </div>
+            <div class="piece-head-left" data-toggle-piece="${p.id}">
+              <button class="piece-collapse-btn">${isCollapsed?'▸':'▾'}</button>
+              <div class="piece-name editable" data-edit="piece|${pPath}" title="Double-click to rename">${escapeHTML(p.name)}</div>
+              ${isCollapsed ? `<div class="piece-summary">${summary}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0;">
+              <select id="copytarget-${p.id}" style="max-width:150px;">${state.students.map(s2=>`<option value="${s2.id}" ${s2.id===student.id?'selected':''}>${escapeHTML(s2.name)}</option>`).join('')}</select>
+              <button class="btn-ghost btn-tiny" data-copy-piece="${pPath}">Copy to Student</button>
+              <button class="btn-ghost btn-tiny" data-save-piece-template="${pPath}">Save as Template</button>
+              <button class="btn-ghost btn-tiny" data-remove-piece="${pPath}">Remove piece</button>
+            </div>
+          </div>
+          ${isCollapsed ? '' : `
+            ${exBlocks || '<div class="hint">No exercise types yet for this piece — add one below.</div>'}
+            <div class="add-exercise-row">
+              <input placeholder="New exercise type, e.g. Chord Transitions" id="exinput-${p.id}">
+              <button class="btn-primary btn-tiny" data-add-exercise="${student.id}|${p.id}">Add exercise type</button>
+            </div>
+          `}
+        </div>`;
+    }).join('');
+
+    const weeklyExerciseBlockHTML = (p, ex)=>{
+      if(!ex.groups) ex.groups = [];
+      const ungrouped = ex.steps.filter(st=>!st.groupId && st.thisWeek);
+      const ungroupedHTML = ungrouped.map(st=>stepRowHTML(p, ex, st)).join('');
+
+      const groupSections = ex.groups.map((g, gIdx)=>{
+        if(!g.subgroups) g.subgroups = [];
+        const directSteps = ex.steps.filter(st=>st.groupId===g.id && !st.subGroupId && st.thisWeek);
+        const directHTML = directSteps.map(st=>stepRowHTML(p, ex, st)).join('');
+        const subSections = g.subgroups.map((sg, sgIdx)=>{
+          if(!sg.subsubgroups) sg.subsubgroups = [];
+          const directSubSteps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId && st.thisWeek);
+          const directSubHTML = directSubSteps.map(st=>stepRowHTML(p, ex, st)).join('');
+          const subSubSections = sg.subsubgroups.map((ssg, ssgIdx)=>{
+            const steps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id && st.thisWeek);
+            if(steps.length===0) return '';
+            const isSSCollapsed = state.collapsedSubSubgroups.has(ssg.id);
+            const ssSummary = `${steps.length} item${steps.length===1?'':'s'}`;
+            const ssPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}`;
+            return `
+              <div class="subsubgroup-block">
+                <div class="subsubgroup-head">
+                  <div class="step-order">
+                    <button class="order-btn" data-move-subsubgroup="up|${ssPath}" ${ssgIdx===0?'disabled':''}>▲</button>
+                    <button class="order-btn" data-move-subsubgroup="down|${ssPath}" ${ssgIdx===sg.subsubgroups.length-1?'disabled':''}>▼</button>
+                  </div>
+                  <div class="subsubgroup-head-left" data-toggle-subsubgroup="${ssg.id}">
+                    <button class="subsubgroup-collapse-btn">${isSSCollapsed?'▸':'▾'}</button>
+                    <span class="subsubgroup-name editable" data-edit="subsubgroup|${ssPath}" title="Double-click to rename">${escapeHTML(ssg.name)}</span>
+                    ${isSSCollapsed ? `<div class="subsubgroup-summary">${ssSummary}</div>` : ''}
+                  </div>
+                  <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
+                </div>
+                ${isSSCollapsed ? '' : steps.map(st=>stepRowHTML(p, ex, st)).join('')}
+              </div>`;
+          }).join('');
+          const totalInSub = directSubSteps.length + sg.subsubgroups.reduce((n,ssg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id && st.thisWeek).length,0);
+          if(totalInSub===0) return '';
+          const isSubCollapsed = state.collapsedSubgroups.has(sg.id);
+          const subSummary = `${totalInSub} item${totalInSub===1?'':'s'}`;
+          const sgPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}`;
+          return `
+            <div class="subgroup-block">
+              <div class="subgroup-head">
+                <div class="step-order">
+                  <button class="order-btn" data-move-subgroup="up|${sgPath}" ${sgIdx===0?'disabled':''}>▲</button>
+                  <button class="order-btn" data-move-subgroup="down|${sgPath}" ${sgIdx===g.subgroups.length-1?'disabled':''}>▼</button>
+                </div>
+                <div class="subgroup-head-left" data-toggle-subgroup="${sg.id}">
+                  <button class="subgroup-collapse-btn">${isSubCollapsed?'▸':'▾'}</button>
+                  <span class="subgroup-name editable" data-edit="subgroup|${sgPath}" title="Double-click to rename">${escapeHTML(sg.name)}</span>
+                  ${isSubCollapsed ? `<div class="subgroup-summary">${subSummary}</div>` : ''}
+                </div>
+                <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
+              </div>
+              ${isSubCollapsed ? '' : `
+                ${directSubHTML}
+                ${subSubSections}
+                <div class="add-subsubgroup-row">
+                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}">
+                  <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
+                </div>
+              `}
+            </div>`;
+        }).join('');
+
+        const totalInGroup = directSteps.length + g.subgroups.reduce((n,sg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.thisWeek).length,0);
+        if(totalInGroup===0) return '';
+        const isGroupCollapsed = state.collapsedGroups.has(g.id);
+        const groupSummary = `${totalInGroup} item${totalInGroup===1?'':'s'}`;
+        const gPath = `${student.id}|${p.id}|${ex.id}|${g.id}`;
+        return `
+          <div class="group-block">
+            <div class="group-head">
+              <div class="step-order">
+                <button class="order-btn" data-move-group="up|${gPath}" ${gIdx===0?'disabled':''}>▲</button>
+                <button class="order-btn" data-move-group="down|${gPath}" ${gIdx===ex.groups.length-1?'disabled':''}>▼</button>
+              </div>
+              <div class="group-head-left" data-toggle-group="${g.id}">
+                <button class="group-collapse-btn">${isGroupCollapsed?'▸':'▾'}</button>
+                <span class="group-name editable" data-edit="group|${gPath}" title="Double-click to rename">${escapeHTML(g.name)}</span>
+                ${isGroupCollapsed ? `<div class="group-summary">${groupSummary}</div>` : ''}
+              </div>
+              <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
+            </div>
+            ${isGroupCollapsed ? '' : `
+              ${directHTML}
+              ${subSections}
+              <div class="add-subgroup-row">
+                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}">
+                <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
+              </div>
+            `}
+          </div>`;
+      }).join('');
+
+      const totalInEx = ungrouped.length + ex.groups.reduce((n,g)=>{
+        const dc = ex.steps.filter(st=>st.groupId===g.id && !st.subGroupId && st.thisWeek).length;
+        const sc = (g.subgroups||[]).reduce((m,sg)=>m+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.thisWeek).length,0);
+        return n+dc+sc;
+      },0);
+      if(totalInEx===0) return '';
+      const isExCollapsed = state.collapsedExercises.has(ex.id);
+      const exSummary = `${totalInEx} item${totalInEx===1?'':'s'} this week`;
+      const exPath = `${student.id}|${p.id}|${ex.id}`;
+      const exIdx = p.exercises.findIndex(e=>e.id===ex.id);
+      return `
+        <div class="exercise-block">
+          <div class="exercise-head">
+            <div class="step-order">
+              <button class="order-btn" data-move-exercise="up|${exPath}" ${exIdx===0?'disabled':''}>▲</button>
+              <button class="order-btn" data-move-exercise="down|${exPath}" ${exIdx===p.exercises.length-1?'disabled':''}>▼</button>
+            </div>
+            <div class="exercise-head-left" data-toggle-exercise="${ex.id}">
+              <button class="exercise-collapse-btn">${isExCollapsed?'▸':'▾'}</button>
+              <div class="exercise-name editable" data-edit="exercise|${exPath}" title="Double-click to rename">${escapeHTML(ex.name)}</div>
+              ${isExCollapsed ? `<div class="exercise-summary">${exSummary}</div>` : ''}
+            </div>
+            <button class="btn-ghost btn-tiny" data-remove-exercise="${exPath}">Remove exercise</button>
+          </div>
+          ${isExCollapsed ? '' : `
+            ${ungroupedHTML}
+            ${groupSections}
+            <div class="add-step-row">
+              <input placeholder="Add step" id="stepinput-${ex.id}">
+              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}">
+                <option value="">No parameter</option>
+                ${ex.groups.map(g=>`<option value="${g.id}">${escapeHTML(g.name)}</option>`).join('')}
+              </select>
+              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled>
+                <option value="">No subparameter</option>
+              </select>
+              <select id="stepsubsubgroup-${ex.id}" disabled>
+                <option value="">No sub-type</option>
+              </select>
+              <button class="btn-primary btn-tiny" data-add-step-week="${exPath}">+ Add step (this week)</button>
+            </div>
+            <div class="add-group-row">
+              <input placeholder="New parameter, e.g. String set, Position" id="groupinput-${ex.id}">
+              <button class="btn-ghost btn-tiny" data-add-group="${exPath}">Add parameter</button>
+            </div>
+          `}
+        </div>`;
+    };
+
+    const weekPieceSections = student.pieces.map((p, pIdx)=>{
+      const exBlocks = p.exercises.map(ex=>weeklyExerciseBlockHTML(p, ex)).filter(Boolean).join('');
+      if(!exBlocks) return '';
+      let total = 0;
+      p.exercises.forEach(ex=> ex.steps.forEach(st=>{ if(st.thisWeek) total++; }));
+      const isCollapsed = state.collapsedPieces.has(p.id);
+      const summary = `${total} item${total===1?'':'s'} this week`;
+      const pPath = `${student.id}|${p.id}`;
+      return `
+        <div class="piece-block ${isCollapsed?'collapsed':''}">
+          <div class="piece-head">
+            <div class="step-order">
+              <button class="order-btn" data-move-piece="up|${pPath}" ${pIdx===0?'disabled':''}>▲</button>
+              <button class="order-btn" data-move-piece="down|${pPath}" ${pIdx===student.pieces.length-1?'disabled':''}>▼</button>
+            </div>
+            <div class="piece-head-left" data-toggle-piece="${p.id}">
+              <button class="piece-collapse-btn">${isCollapsed?'▸':'▾'}</button>
+              <div class="piece-name editable" data-edit="piece|${pPath}" title="Double-click to rename">${escapeHTML(p.name)}</div>
+              <div class="piece-summary">${summary}</div>
+            </div>
+          </div>
+          ${isCollapsed ? '' : exBlocks}
+        </div>`;
+    }).join('');
+
+    const thisWeekCard = `
+      <div class="card">
+        <div class="card-title">This Week's Assignment</div>
+        ${weekPieceSections || '<div class="empty">Nothing flagged yet. Switch to the Cumulative tab and toggle "This week" on any step to add it here.</div>'}
+      </div>`;
+
+    const messageCard = `
+      <div class="card">
+        <div class="card-title">Next Slack message <button class="btn-ghost btn-tiny" id="copyBtn">Copy</button></div>
+        <div class="msg-box" id="msgBox">${escapeHTML(buildMessage(student.id))}</div>
+      </div>`;
+
+    const explainerCard = `
+      <div class="card">
+        <div class="card-title">Explain the System <button class="btn-ghost btn-tiny" id="copyExplainerBtn">Copy</button></div>
+        <div class="hint" style="margin-bottom:10px;">Send this once, before their first weekly update, so the labels make sense.</div>
+        <div class="msg-box" id="explainerBox">${escapeHTML(buildExplainerMessage(student.id))}</div>
+      </div>`;
+
+    const welcomeCard = `
+      <div class="card">
+        <div class="card-title">Welcome Email <button class="btn-ghost btn-tiny" id="copyWelcomeBtn">Copy</button></div>
+        <div class="hint" style="margin-bottom:10px;">Send this to brand-new students when they sign on.</div>
+        <div class="msg-box" id="welcomeBox">${escapeHTML(buildWelcomeEmail(student.id))}</div>
+      </div>`;
+
+    const pieceOptionsFor = (tid)=> student.pieces.map(p=>`<option value="${p.id}" ${state.lastInsertTarget[tid]===p.id?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
+    const isExTplCardCollapsed = state.collapsedTemplateCards.has('exercise');
+    const templateLibraryCard = `
+      <div class="card">
+        <div class="card-title tplcard-title" data-toggle-tplcard="exercise">${isExTplCardCollapsed?'▸':'▾'} Exercise Template Library</div>
+        ${isExTplCardCollapsed ? '' : `
+          <div class="hint" style="margin-bottom:10px;">Save an exercise and its whole tree (parameters, sub-parameters, sub-types, steps), then drop a fresh copy into any piece for this student.</div>
+          ${state.templates.length ? renderGroupedTemplateRows(
+            state.templates,
+            t=> t.sourcePiece || 'Other',
+            t=> templateRowHTML(
+              t, `exerciseTemplateTitle|${t.id}`,
+              `${(t.groups||[]).length} param${(t.groups||[]).length===1?'':'s'} · ${(t.steps||[]).length} step${(t.steps||[]).length===1?'':'s'}`,
+              `${student.pieces.length ? `
+                <select id="tplpiece-${t.id}">${pieceOptionsFor(t.id)}</select>
+                <button class="btn-primary btn-tiny" data-insert-template="${student.id}|${t.id}">Insert</button>
+              ` : '<span class="hint">Add a piece first</span>'}
+              <button class="btn-ghost btn-tiny" data-edit-template="exercise|${t.id}">Edit Template</button>
+              <button class="btn-ghost btn-tiny" data-remove-template="${t.id}">Remove</button>`,
+              renderExerciseTemplateTree,
+              t.title || t.name
+            )
+          ) : '<div class="empty">No templates saved yet. Use "Save as Template" on any exercise in the Cumulative tab.</div>'}
+        `}
+      </div>`;
+
+    const isPieceTplCardCollapsed = state.collapsedTemplateCards.has('piece');
+    const pieceTemplateLibraryCard = `
+      <div class="card">
+        <div class="card-title tplcard-title" data-toggle-tplcard="piece">${isPieceTplCardCollapsed?'▸':'▾'} Piece Template Library</div>
+        ${isPieceTplCardCollapsed ? '' : `
+          <div class="hint" style="margin-bottom:10px;">Save the exercise category names inside a piece as a starter list (no parameters or steps), then use it to spin up a brand-new piece with those categories already in place, for this student.</div>
+          ${state.pieceTemplates.length ? state.pieceTemplates.map(t=> templateRowHTML(
+            t, `pieceTemplateTitle|${t.id}`,
+            `${(t.exercises||[]).length} exercise${(t.exercises||[]).length===1?'':'s'}`,
+            `<input placeholder="New piece name" id="pctplname-${t.id}" style="width:140px;">
+             <button class="btn-primary btn-tiny" data-insert-piece-template="${student.id}|${t.id}">Create piece</button>
+             <button class="btn-ghost btn-tiny" data-remove-piece-template="${t.id}">Remove</button>`,
+            renderPieceTemplateTree,
+            t.title || t.name
+          )).join('') : '<div class="empty">No piece templates saved yet. Use "Save as Template" on any piece below.</div>'}
+        `}
+      </div>`;
+
+    const exerciseOptionsFlat = [];
+    student.pieces.forEach(pp=> pp.exercises.forEach(ee=>
+      exerciseOptionsFlat.push({ val: `${pp.id}::${ee.id}`, label: `${pp.name}: ${ee.name}` })
+    ));
+    const groupOptionsFlat = [];
+    student.pieces.forEach(pp=> pp.exercises.forEach(ee=> (ee.groups||[]).forEach(gg=>
+      groupOptionsFlat.push({ val: `${pp.id}::${ee.id}::${gg.id}`, label: `${pp.name}: ${ee.name}: ${gg.name}` })
+    )));
+    const subgroupOptionsFlat = [];
+    student.pieces.forEach(pp=> pp.exercises.forEach(ee=> (ee.groups||[]).forEach(gg=> (gg.subgroups||[]).forEach(sgg=>
+      subgroupOptionsFlat.push({ val: `${pp.id}::${ee.id}::${gg.id}::${sgg.id}`, label: `${pp.name}: ${ee.name}: ${gg.name}: ${sgg.name}` })
+    ))));
+
+    const allExerciseNames = [];
+    state.students.forEach(s2=> s2.pieces.forEach(pp=> pp.exercises.forEach(ee=>{
+      if(!allExerciseNames.includes(ee.name)) allExerciseNames.push(ee.name);
+    })));
+    allExerciseNames.sort((a,b)=> a.localeCompare(b));
+
+    const assignSourceHtml = (t, collectionName)=> (!t.sourceExercise) && allExerciseNames.length
+      ? `<select id="assignsrc-${t.id}">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
+         <button class="btn-ghost btn-tiny" data-assign-template-source="${collectionName}|${t.id}">File under this exercise</button>`
+      : '';
+
+    const paramRows = state.paramTemplates.map(t=>({
+      sourceKey: t.sourceExercise || 'Other',
+      html: templateRowHTML(
+        t, `paramTemplateTitle|${t.id}`,
+        `${(t.subgroups||[]).length} subparam${(t.subgroups||[]).length===1?'':'s'} · ${(t.steps||[]).length} step${(t.steps||[]).length===1?'':'s'}`,
+        `${assignSourceHtml(t, 'paramTemplates')}
+        ${exerciseOptionsFlat.length ? `
+          <select id="ptplex-${t.id}">${exerciseOptionsFlat.map(o=>`<option value="${o.val}" ${state.lastInsertTarget[t.id]===o.val?'selected':''}>${escapeHTML(o.label)}</option>`).join('')}</select>
+          <button class="btn-primary btn-tiny" data-insert-param-template="${student.id}|${t.id}">Insert</button>
+        ` : '<span class="hint">Add an exercise first</span>'}
+        <button class="btn-ghost btn-tiny" data-edit-template="param|${t.id}">Edit Template</button>
+        <button class="btn-ghost btn-tiny" data-remove-param-template="${t.id}">Remove</button>`,
+        renderParamTemplateTree,
+        t.title || t.name,
+        { cls: 'param', label: 'Parameter' }
+      )
+    }));
+    const subParamRows = state.subParamTemplates.map(t=>({
+      sourceKey: t.sourceExercise || 'Other',
+      html: templateRowHTML(
+        t, `subParamTemplateTitle|${t.id}`,
+        `${(t.subsubgroups||[]).length} sub-type${(t.subsubgroups||[]).length===1?'':'s'} · ${(t.steps||[]).length} step${(t.steps||[]).length===1?'':'s'}`,
+        `${assignSourceHtml(t, 'subParamTemplates')}
+        ${groupOptionsFlat.length ? `
+          <select id="sptplgrp-${t.id}">${groupOptionsFlat.map(o=>`<option value="${o.val}" ${state.lastInsertTarget[t.id]===o.val?'selected':''}>${escapeHTML(o.label)}</option>`).join('')}</select>
+          <button class="btn-primary btn-tiny" data-insert-subparam-template="${student.id}|${t.id}">Insert</button>
+        ` : '<span class="hint">Add a parameter first</span>'}
+        <button class="btn-ghost btn-tiny" data-edit-template="subparam|${t.id}">Edit Template</button>
+        <button class="btn-ghost btn-tiny" data-remove-subparam-template="${t.id}">Remove</button>`,
+        renderSubParamTemplateTree,
+        t.title || t.name,
+        { cls: 'subparam', label: 'Sub-parameter' }
+      )
+    }));
+    const subTypeRows = state.subTypeTemplates.map(t=>({
+      sourceKey: t.sourceExercise || 'Other',
+      html: templateRowHTML(
+        t, `subTypeTemplateTitle|${t.id}`,
+        `${(t.steps||[]).length} step${(t.steps||[]).length===1?'':'s'}`,
+        `${assignSourceHtml(t, 'subTypeTemplates')}
+        ${subgroupOptionsFlat.length ? `
+          <select id="sttplsg-${t.id}">${subgroupOptionsFlat.map(o=>`<option value="${o.val}" ${state.lastInsertTarget[t.id]===o.val?'selected':''}>${escapeHTML(o.label)}</option>`).join('')}</select>
+          <button class="btn-primary btn-tiny" data-insert-subtype-template="${student.id}|${t.id}">Insert</button>
+        ` : '<span class="hint">Add a sub-parameter first</span>'}
+        <button class="btn-ghost btn-tiny" data-edit-template="subtype|${t.id}">Edit Template</button>
+        <button class="btn-ghost btn-tiny" data-remove-subtype-template="${t.id}">Remove</button>`,
+        renderSubTypeTemplateTree,
+        t.title || t.name,
+        { cls: 'subtype', label: 'Sub-type' }
+      )
+    }));
+
+    const allExerciseContentRows = [...paramRows, ...subParamRows, ...subTypeRows];
+    const exerciseContentGroups = [];
+    allExerciseContentRows.forEach(r=>{
+      let g = exerciseContentGroups.find(x=>x.key===r.sourceKey);
+      if(!g){ g = { key: r.sourceKey, htmls: [] }; exerciseContentGroups.push(g); }
+      g.htmls.push(r.html);
+    });
+
+    const exerciseContentCards = exerciseContentGroups.map(g=>{
+      const cardKey = 'ex-src:' + g.key;
+      const isCollapsed = state.collapsedTemplateCards.has(cardKey);
+      const bulkAssignHtml = (g.key==='Other' && allExerciseNames.length) ? `
+        <div class="add-group-row" style="margin-bottom:12px;">
+          <select id="bulkassignsrc">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
+          <button class="btn-primary btn-tiny" data-bulk-assign-source>File ALL of these under this exercise</button>
+        </div>` : '';
+      return `
+        <div class="card">
+          <div class="card-title tplcard-title" data-toggle-tplcard="${escapeAttr(cardKey)}">${isCollapsed?'▸':'▾'} ${escapeHTML(g.key)} Templates</div>
+          ${isCollapsed ? '' : `
+            <div class="hint" style="margin-bottom:10px;">${g.key==='Other' ? 'Not yet filed under an exercise.' : `From any "${escapeHTML(g.key)}" exercise, across every piece.`}</div>
+            ${bulkAssignHtml}
+            ${g.htmls.join('')}
+          `}
+        </div>`;
+    }).join('');
+
+    const exerciseContentTemplateLibraryCard = allExerciseContentRows.length
+      ? exerciseContentCards
+      : `<div class="card">
+          <div class="card-title">Exercise Content Templates</div>
+          <div class="hint" style="margin-bottom:10px;">Parameters, sub-parameters, and sub-types you've saved will each show up here in their own box, named after the exercise they came from.</div>
+          <div class="empty">No parameter, sub-parameter, or sub-type templates saved yet. Use "Save as Template" on any of those levels in the Cumulative tab.</div>
+        </div>`;
+
+    const templatesCard = pieceTemplateLibraryCard + templateLibraryCard + exerciseContentTemplateLibraryCard;
+
+    const cumulativeCard = `
+      <div class="card">
+        <div class="card-title">${escapeHTML(student.name)}'s full history</div>
+        <div class="hint" style="margin-bottom:10px;">Piece → Exercise → Parameter → Step. Toggle "This week" on any step to add it to the current assignment.</div>
+        ${pieceBlocksHTML || '<div class="empty">No pieces yet for this student — add one below.</div>'}
+        <div class="add-piece-row">
+          <input placeholder="New piece, e.g. Rocky Mountain High" id="pieceinput-${student.id}">
+          <button class="btn-primary btn-tiny" data-add-piece="${student.id}">Add piece</button>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="border-color:var(--string);"></div>Standby</div>
+          <div class="legend-item"><div class="legend-dot in_process"></div>Waiting for Submission</div>
+          <div class="legend-item"><div class="legend-dot refining"></div>Almost There</div>
+          <div class="legend-item"><div class="legend-dot needs_review"></div>Review (in rotation)</div>
+          <div class="legend-item"><div class="legend-dot locked_in"></div>Locked In</div>
+        </div>
+      </div>`;
+
+    const builtInScriptsHTML = BUILT_IN_SCRIPTS.map(sc=>`
+      <div class="exercise-block">
+        <div class="exercise-head" style="margin-bottom:8px;">
+          <div class="exercise-name">${escapeHTML(sc.label)}</div>
+          <button class="btn-ghost btn-tiny" data-copy-script="builtin-${sc.key}">Copy</button>
+        </div>
+        <div class="msg-box" id="scriptbox-builtin-${sc.key}">${escapeHTML(sc.build(student))}</div>
+      </div>`).join('');
+
+    const customScriptsHTML = state.customScripts.length ? state.customScripts.map(sc=>`
+      <div class="exercise-block">
+        <div class="exercise-head" style="margin-bottom:8px;">
+          <div class="exercise-name editable" data-edit="scriptTitle|${sc.id}" title="Double-click to rename">${escapeHTML(sc.title)}</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-ghost btn-tiny" data-copy-script="custom-${sc.id}">Copy</button>
+            <button class="btn-ghost btn-tiny" data-remove-script="${sc.id}">Remove</button>
+          </div>
+        </div>
+        <div class="msg-box" id="scriptbox-custom-${sc.id}">${escapeHTML(sc.body.replace(/\{name\}/gi, firstName(student)))}</div>
+        <div class="hint">Use {name} anywhere in the script to insert the student's first name.</div>
+      </div>`).join('') : '<div class="empty">No custom scripts yet. Add one below.</div>';
+
+    const scriptsCard = `
+      <div class="card">
+        <div class="card-title">Scenario Scripts</div>
+        <div class="hint" style="margin-bottom:12px;">Ready-to-send responses for common situations. Names fill in automatically for whichever student is selected.</div>
+        ${builtInScriptsHTML}
+      </div>
+      <div class="card">
+        <div class="card-title">Your Custom Scripts</div>
+        ${customScriptsHTML}
+        <div class="add-group-row" style="flex-direction:column;align-items:stretch;">
+          <input placeholder="Script title, e.g. Missed a lesson" id="newScriptTitle" style="margin-bottom:8px;">
+          <textarea placeholder="Script text. Use {name} for the student's first name." id="newScriptBody" rows="3" style="width:100%;background:var(--rosewood-light);border:1px solid var(--hairline);color:var(--bone);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13.5px;margin-bottom:8px;resize:vertical;"></textarea>
+          <button class="btn-primary btn-tiny" id="addScriptBtn" style="align-self:flex-start;">Add script</button>
+        </div>
+      </div>`;
+
+    body = state.view === 'week' ? (messageCard + thisWeekCard)
+      : state.view === 'cumulative' ? cumulativeCard
+      : state.view === 'templates' ? templatesCard
+      : state.view === 'explain' ? explainerCard
+      : state.view === 'welcome' ? welcomeCard
+      : scriptsCard;
+  }
+
+  root.innerHTML = `
+    <h1>Ladder</h1>
+    <p class="subtitle">Piece → Exercise → Parameter → Step, per student.</p>
+    ${state.saveError ? `
+      <div style="background:rgba(178,78,56,.18);border:1px solid var(--rust);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <div style="color:var(--bone);font-size:13.5px;">⚠️ Couldn't save your last change (${escapeHTML(state.saveError)}) — it may not have persisted. Try again, and consider exporting a backup below.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary btn-tiny" id="retrySaveBtn">Retry Save</button>
+          <button class="btn-ghost btn-tiny" id="dismissSaveErrorBtn">Dismiss</button>
+        </div>
+      </div>
+    ` : ''}
+    ${state.importError ? `
+      <div style="background:rgba(178,78,56,.18);border:1px solid var(--rust);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <div style="color:var(--bone);font-size:13.5px;">⚠️ Import failed: ${escapeHTML(state.importError)}</div>
+        <button class="btn-ghost btn-tiny" id="dismissImportErrorBtn">Dismiss</button>
+      </div>
+    ` : ''}
+    ${state.pendingImport ? `
+      <div style="background:rgba(195,155,87,.18);border:1px solid var(--brass);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+        <div style="color:var(--bone);font-size:13.5px;">📥 Ready to import: ${state.pendingImport.students.length} student${state.pendingImport.students.length===1?'':'s'} found in this file. This will <strong>replace</strong> everything currently loaded here. This can't be undone.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary btn-tiny" id="confirmImportBtn">Confirm Import</button>
+          <button class="btn-ghost btn-tiny" id="cancelImportBtn">Cancel</button>
+        </div>
+      </div>
+    ` : ''}
+    <div class="student-row">
+      ${chips}
+      <div class="add-student">
+        <input id="newStudentName" placeholder="New student name">
+        <button class="btn-primary btn-tiny" id="addStudentBtn">Add</button>
+      </div>
+      <button class="btn-ghost btn-tiny" id="exportDataBtn">Export Backup</button>
+      <button class="btn-ghost btn-tiny" id="importDataBtn">Import Backup</button>
+      <input type="file" id="importDataFile" accept="application/json" style="display:none;">
+    </div>
+    ${student ? `
+      <div class="view-tabs">
+        <div class="view-tab ${state.view==='week'?'active':''}" data-view="week">This Week</div>
+        <div class="view-tab ${state.view==='cumulative'?'active':''}" data-view="cumulative">Cumulative</div>
+        <div class="view-tab ${state.view==='templates'?'active':''}" data-view="templates">Templates</div>
+        <div class="view-tab ${state.view==='explain'?'active':''}" data-view="explain">Explain System</div>
+        <div class="view-tab ${state.view==='welcome'?'active':''}" data-view="welcome">Welcome Email</div>
+        <div class="view-tab ${state.view==='scripts'?'active':''}" data-view="scripts">Scripts</div>
+      </div>
+    ` : ''}
+    ${body}
+    ${renderTemplateEditorOverlay()}
+  `;
+  bind();
+}
+
+function copyText(text, btn){
+  const orig = btn.dataset.origLabel || btn.innerText;
+  btn.dataset.origLabel = orig;
+  const done = (label)=>{ btn.innerText = label; setTimeout(()=>{ btn.innerText = orig; }, 1600); };
+  const fallback = ()=>{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      done(ok ? 'Copied' : 'Select text & Ctrl+C');
+    }catch(e){
+      done('Select text & Ctrl+C');
+    }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=> done('Copied')).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+function promptInline(btn, defaultValue, onSubmit){
+  const wrapper = document.createElement('span');
+  wrapper.style.display = 'inline-flex';
+  wrapper.style.gap = '4px';
+  wrapper.style.alignItems = 'center';
+  const input = document.createElement('input');
+  input.value = defaultValue || '';
+  input.placeholder = 'Template name';
+  input.style.width = '150px';
+  input.style.fontSize = '11.5px';
+  input.style.padding = '5px 8px';
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = 'Save';
+  confirmBtn.className = 'btn-primary btn-tiny';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕';
+  cancelBtn.className = 'btn-ghost btn-tiny';
+  wrapper.appendChild(input);
+  wrapper.appendChild(confirmBtn);
+  wrapper.appendChild(cancelBtn);
+  btn.replaceWith(wrapper);
+  input.focus(); input.select();
+  let done = false;
+  const submit = ()=>{ if(done) return; done = true; onSubmit(input.value); };
+  const cancel = ()=>{ if(done) return; done = true; render(); };
+  confirmBtn.onclick = submit;
+  cancelBtn.onclick = cancel;
+  input.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); submit(); }
+    if(e.key==='Escape'){ e.preventDefault(); cancel(); }
+  });
+}
+
+function bind(){
+  document.querySelectorAll('[data-edit]').forEach(el=>{
+    const editKey = el.dataset.edit;
+    const isStudent = editKey.startsWith('student|');
+    if(isStudent){
+      el.onclick = (e)=>{
+        e.stopPropagation();
+        if(el._clickTimer) return;
+        el._clickTimer = setTimeout(()=>{
+          el._clickTimer = null;
+          state.selected = editKey.split('|')[1];
+          applyDefaultCollapseForStudent(state.selected);
+          render();
+        }, 230);
+      };
+      el.ondblclick = (e)=>{
+        e.stopPropagation();
+        if(el._clickTimer){ clearTimeout(el._clickTimer); el._clickTimer = null; }
+        startEdit(el, el.textContent);
+      };
+    } else {
+      el.onclick = (e)=>{ e.stopPropagation(); };
+      el.ondblclick = (e)=>{ e.stopPropagation(); startEdit(el, el.textContent); };
+    }
+  });
+  document.querySelectorAll('[data-toggle-group]').forEach(el=>{
+    el.onclick = ()=>{
+      const gid = el.dataset.toggleGroup;
+      if(state.collapsedGroups.has(gid)) state.collapsedGroups.delete(gid);
+      else state.collapsedGroups.add(gid);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-subgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const sgid = el.dataset.toggleSubgroup;
+      if(state.collapsedSubgroups.has(sgid)) state.collapsedSubgroups.delete(sgid);
+      else state.collapsedSubgroups.add(sgid);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-subsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const ssgid = el.dataset.toggleSubsubgroup;
+      if(state.collapsedSubSubgroups.has(ssgid)) state.collapsedSubSubgroups.delete(ssgid);
+      else state.collapsedSubSubgroups.add(ssgid);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const eid = el.dataset.toggleExercise;
+      if(state.collapsedExercises.has(eid)) state.collapsedExercises.delete(eid);
+      else state.collapsedExercises.add(eid);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-tplcard]').forEach(el=>{
+    el.onclick = ()=>{
+      const key = el.dataset.toggleTplcard;
+      if(state.collapsedTemplateCards.has(key)) state.collapsedTemplateCards.delete(key);
+      else state.collapsedTemplateCards.add(key);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-tplrow]').forEach(el=>{
+    el.onclick = ()=>{
+      const key = el.dataset.toggleTplrow;
+      if(state.collapsedTemplateRows.has(key)) state.collapsedTemplateRows.delete(key);
+      else state.collapsedTemplateRows.add(key);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-toggle-piece]').forEach(el=>{
+    el.onclick = ()=>{
+      const pid = el.dataset.togglePiece;
+      if(state.collapsedPieces.has(pid)) state.collapsedPieces.delete(pid);
+      else state.collapsedPieces.add(pid);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-view]').forEach(el=>{
+    el.onclick = ()=>{
+      const newView = el.dataset.view;
+      if(newView==='templates' && state.view!=='templates') collapseAllTemplateCards();
+      if(newView==='cumulative' && state.view!=='cumulative' && state.selected) applyDefaultCollapseForStudent(state.selected);
+      state.view = newView;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-select]').forEach(el=>{
+    el.onclick = (e)=>{
+      if(e.target.classList.contains('chip-x')) return;
+      const sid = el.dataset.select;
+      if(sid !== state.selected) applyDefaultCollapseForStudent(sid);
+      state.selected = sid;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-remove-student]').forEach(el=>{
+    el.onclick = (e)=>{ e.stopPropagation(); removeStudent(el.dataset.removeStudent); };
+  });
+  const addStudentBtn = document.getElementById('addStudentBtn');
+  if(addStudentBtn) addStudentBtn.onclick = ()=>{
+    const inp = document.getElementById('newStudentName');
+    addStudent(inp.value); inp.value='';
+  };
+  document.querySelectorAll('[data-save-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.saveTemplate.split('|');
+      promptInline(el, '', (name)=>{
+        if(name && name.trim()) saveExerciseAsTemplate(sid, pid, eid, name);
+        else render();
+      });
+    };
+  });
+  document.querySelectorAll('[data-insert-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, tid] = el.dataset.insertTemplate.split('|');
+      const sel = document.getElementById('tplpiece-'+tid);
+      if(sel && sel.value){ state.lastInsertTarget[tid] = sel.value; insertTemplate(sid, sel.value, tid); }
+    };
+  });
+  document.querySelectorAll('[data-remove-template]').forEach(el=>{
+    el.onclick = ()=> removeTemplate(el.dataset.removeTemplate);
+  });
+  document.querySelectorAll('[data-copy-piece]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid] = el.dataset.copyPiece.split('|');
+      const sel = document.getElementById('copytarget-'+pid);
+      if(sel && sel.value) copyPieceToStudent(sid, pid, sel.value);
+    };
+  });
+  document.querySelectorAll('[data-save-piece-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid] = el.dataset.savePieceTemplate.split('|');
+      const p = getPiece(sid, pid);
+      promptInline(el, '', (name)=>{
+        if(name && name.trim()) savePieceAsTemplate(sid, pid, name);
+        else render();
+      });
+    };
+  });
+  document.querySelectorAll('[data-insert-piece-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, tid] = el.dataset.insertPieceTemplate.split('|');
+      const inp = document.getElementById('pctplname-'+tid);
+      insertPieceTemplate(sid, tid, inp ? inp.value : '');
+    };
+  });
+  document.querySelectorAll('[data-remove-piece-template]').forEach(el=>{
+    el.onclick = ()=> removePieceTemplate(el.dataset.removePieceTemplate);
+  });
+  document.querySelectorAll('[data-save-param-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid] = el.dataset.saveParamTemplate.split('|');
+      const ex = getExercise(sid, pid, eid);
+      const g = ex && (ex.groups||[]).find(x=>x.id===gid);
+      promptInline(el, '', (name)=>{
+        if(name && name.trim()) saveParameterAsTemplate(sid, pid, eid, gid, name);
+        else render();
+      });
+    };
+  });
+  document.querySelectorAll('[data-insert-param-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, tid] = el.dataset.insertParamTemplate.split('|');
+      const sel = document.getElementById('ptplex-'+tid);
+      if(sel && sel.value){
+        state.lastInsertTarget[tid] = sel.value;
+        const [pid, eid] = sel.value.split('::');
+        insertParamTemplate(sid, pid, eid, tid);
+      }
+    };
+  });
+  document.querySelectorAll('[data-remove-param-template]').forEach(el=>{
+    el.onclick = ()=> removeParamTemplate(el.dataset.removeParamTemplate);
+  });
+  document.querySelectorAll('[data-save-subparam-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid] = el.dataset.saveSubparamTemplate.split('|');
+      const ex = getExercise(sid, pid, eid);
+      const g = ex && (ex.groups||[]).find(x=>x.id===gid);
+      promptInline(el, '', (name)=>{
+        if(name && name.trim()) saveSubgroupAsTemplate(sid, pid, eid, gid, sgid, name);
+        else render();
+      });
+    };
+  });
+  document.querySelectorAll('[data-insert-subparam-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, tid] = el.dataset.insertSubparamTemplate.split('|');
+      const sel = document.getElementById('sptplgrp-'+tid);
+      if(sel && sel.value){
+        state.lastInsertTarget[tid] = sel.value;
+        const [pid, eid, gid] = sel.value.split('::');
+        insertSubParamTemplate(sid, pid, eid, gid, tid);
+      }
+    };
+  });
+  document.querySelectorAll('[data-remove-subparam-template]').forEach(el=>{
+    el.onclick = ()=> removeSubParamTemplate(el.dataset.removeSubparamTemplate);
+  });
+  document.querySelectorAll('[data-save-subtype-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid, ssgid] = el.dataset.saveSubtypeTemplate.split('|');
+      const ex = getExercise(sid, pid, eid);
+      const g = ex && (ex.groups||[]).find(x=>x.id===gid);
+      const sg = g && (g.subgroups||[]).find(x=>x.id===sgid);
+      const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===ssgid);
+      promptInline(el, '', (name)=>{
+        if(name && name.trim()) saveSubSubgroupAsTemplate(sid, pid, eid, gid, sgid, ssgid, name);
+        else render();
+      });
+    };
+  });
+  document.querySelectorAll('[data-insert-subtype-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, tid] = el.dataset.insertSubtypeTemplate.split('|');
+      const sel = document.getElementById('sttplsg-'+tid);
+      if(sel && sel.value){
+        state.lastInsertTarget[tid] = sel.value;
+        const [pid, eid, gid, sgid] = sel.value.split('::');
+        insertSubTypeTemplate(sid, pid, eid, gid, sgid, tid);
+      }
+    };
+  });
+  document.querySelectorAll('[data-remove-subtype-template]').forEach(el=>{
+    el.onclick = ()=> removeSubTypeTemplate(el.dataset.removeSubtypeTemplate);
+  });
+  document.querySelectorAll('[data-assign-template-source]').forEach(el=>{
+    el.onclick = ()=>{
+      const [collectionName, tid] = el.dataset.assignTemplateSource.split('|');
+      const sel = document.getElementById('assignsrc-'+tid);
+      if(sel && sel.value) assignTemplateSource(collectionName, tid, sel.value);
+    };
+  });
+  document.querySelectorAll('[data-bulk-assign-source]').forEach(el=>{
+    el.onclick = ()=>{
+      const sel = document.getElementById('bulkassignsrc');
+      if(sel && sel.value) bulkAssignOrphanedTemplateSource(sel.value);
+    };
+  });
+  document.querySelectorAll('[data-add-piece]').forEach(el=>{
+    el.onclick = ()=>{
+      const sid = el.dataset.addPiece;
+      const inp = document.getElementById('pieceinput-'+sid);
+      addPiece(sid, inp.value); inp.value='';
+    };
+  });
+  document.querySelectorAll('[data-remove-piece]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid] = el.dataset.removePiece.split('|');
+      removePiece(sid, pid);
+    };
+  });
+  document.querySelectorAll('[data-add-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid] = el.dataset.addExercise.split('|');
+      const inp = document.getElementById('exinput-'+pid);
+      addExercise(sid, pid, inp.value); inp.value='';
+    };
+  });
+  document.querySelectorAll('[data-remove-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.removeExercise.split('|');
+      removeExercise(sid, pid, eid);
+    };
+  });
+  document.querySelectorAll('[data-move-piece]').forEach(el=>{
+    el.onclick = ()=>{
+      const [dir, sid, pid] = el.dataset.movePiece.split('|');
+      movePiece(sid, pid, dir);
+    };
+  });
+  document.querySelectorAll('[data-move-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const [dir, sid, pid, eid] = el.dataset.moveExercise.split('|');
+      moveExercise(sid, pid, eid, dir);
+    };
+  });
+  document.querySelectorAll('[data-move-group]').forEach(el=>{
+    el.onclick = ()=>{
+      const [dir, sid, pid, eid, gid] = el.dataset.moveGroup.split('|');
+      moveGroupOrder(sid, pid, eid, gid, dir);
+    };
+  });
+  document.querySelectorAll('[data-move-subgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [dir, sid, pid, eid, gid, sgid] = el.dataset.moveSubgroup.split('|');
+      moveSubgroupOrder(sid, pid, eid, gid, sgid, dir);
+    };
+  });
+  document.querySelectorAll('[data-move-subsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [dir, sid, pid, eid, gid, sgid, ssgid] = el.dataset.moveSubsubgroup.split('|');
+      moveSubSubgroupOrder(sid, pid, eid, gid, sgid, ssgid, dir);
+    };
+  });
+  document.querySelectorAll('[data-cascade-group]').forEach(el=>{
+    el.onchange = ()=> populateStepSubgroupSelect(el.dataset.cascadeGroup);
+  });
+  document.querySelectorAll('[data-cascade-subgroup]').forEach(el=>{
+    el.onchange = ()=> populateStepSubSubgroupSelect(el.dataset.cascadeSubgroup);
+  });
+  document.querySelectorAll('[data-add-step]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.addStep.split('|');
+      const inp = document.getElementById('stepinput-'+eid);
+      const groupSel = document.getElementById('stepgroup-'+eid);
+      const subSel = document.getElementById('stepsubgroup-'+eid);
+      const subSubSel = document.getElementById('stepsubsubgroup-'+eid);
+      addStep(sid, pid, eid, inp.value, groupSel ? groupSel.value : '', subSel ? subSel.value : '', subSubSel ? subSubSel.value : '');
+    };
+  });
+  document.querySelectorAll('[data-add-step-week]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.addStepWeek.split('|');
+      const inp = document.getElementById('stepinput-'+eid);
+      const groupSel = document.getElementById('stepgroup-'+eid);
+      const subSel = document.getElementById('stepsubgroup-'+eid);
+      const subSubSel = document.getElementById('stepsubsubgroup-'+eid);
+      addStep(sid, pid, eid, inp.value, groupSel ? groupSel.value : '', subSel ? subSel.value : '', subSubSel ? subSubSel.value : '', true);
+    };
+  });
+  document.querySelectorAll('[data-remove-step]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.removeStep.split('|');
+      removeStep(sid, pid, eid, stid);
+    };
+  });
+  document.querySelectorAll('[data-move]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.path.split('|');
+      moveStep(sid, pid, eid, stid, el.dataset.move);
+    };
+  });
+  document.querySelectorAll('[data-setstatus]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, stid, status] = el.dataset.setstatus.split('|');
+      setStatus(sid, pid, eid, stid, status);
+    };
+  });
+  document.querySelectorAll('[data-toggle-week]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.toggleWeek.split('|');
+      toggleThisWeek(sid, pid, eid, stid);
+    };
+  });
+  document.querySelectorAll('[data-add-group]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.addGroup.split('|');
+      const inp = document.getElementById('groupinput-'+eid);
+      addGroup(sid, pid, eid, inp.value); inp.value='';
+    };
+  });
+  document.querySelectorAll('[data-remove-group]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid] = el.dataset.removeGroup.split('|');
+      removeGroup(sid, pid, eid, gid);
+    };
+  });
+  document.querySelectorAll('[data-set-group]').forEach(el=>{
+    el.onchange = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.setGroup.split('|');
+      setStepGroup(sid, pid, eid, stid, el.value);
+    };
+  });
+  document.querySelectorAll('[data-add-subgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid] = el.dataset.addSubgroup.split('|');
+      const inp = document.getElementById('subgroupinput-'+gid);
+      addSubgroup(sid, pid, eid, gid, inp.value); inp.value='';
+    };
+  });
+  document.querySelectorAll('[data-remove-subgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid] = el.dataset.removeSubgroup.split('|');
+      removeSubgroup(sid, pid, eid, gid, sgid);
+    };
+  });
+  document.querySelectorAll('[data-set-subgroup]').forEach(el=>{
+    el.onchange = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.setSubgroup.split('|');
+      setStepSubgroup(sid, pid, eid, stid, el.value);
+    };
+  });
+  document.querySelectorAll('[data-add-subsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid] = el.dataset.addSubsubgroup.split('|');
+      const inp = document.getElementById('subsubgroupinput-'+sgid);
+      addSubSubgroup(sid, pid, eid, gid, sgid, inp.value); inp.value='';
+    };
+  });
+  document.querySelectorAll('[data-remove-subsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid, ssgid] = el.dataset.removeSubsubgroup.split('|');
+      removeSubSubgroup(sid, pid, eid, gid, sgid, ssgid);
+    };
+  });
+  document.querySelectorAll('[data-set-subsubgroup]').forEach(el=>{
+    el.onchange = ()=>{
+      const [sid, pid, eid, stid] = el.dataset.setSubsubgroup.split('|');
+      setStepSubSubgroup(sid, pid, eid, stid, el.value);
+    };
+  });
+  const copyBtn = document.getElementById('copyBtn');
+  if(copyBtn){
+    copyBtn.onclick = ()=> copyText(document.getElementById('msgBox').innerText, copyBtn);
+  }
+  const copyExplainerBtn = document.getElementById('copyExplainerBtn');
+  if(copyExplainerBtn){
+    copyExplainerBtn.onclick = ()=> copyText(document.getElementById('explainerBox').innerText, copyExplainerBtn);
+  }
+  const copyWelcomeBtn = document.getElementById('copyWelcomeBtn');
+  if(copyWelcomeBtn){
+    copyWelcomeBtn.onclick = ()=> copyText(document.getElementById('welcomeBox').innerText, copyWelcomeBtn);
+  }
+  document.querySelectorAll('[data-copy-script]').forEach(el=>{
+    el.onclick = ()=> copyText(document.getElementById('scriptbox-'+el.dataset.copyScript).innerText, el);
+  });
+  document.querySelectorAll('[data-remove-script]').forEach(el=>{
+    el.onclick = ()=> removeCustomScript(el.dataset.removeScript);
+  });
+  const addScriptBtn = document.getElementById('addScriptBtn');
+  if(addScriptBtn){
+    addScriptBtn.onclick = ()=>{
+      const titleInp = document.getElementById('newScriptTitle');
+      const bodyInp = document.getElementById('newScriptBody');
+      addCustomScript(titleInp.value, bodyInp.value);
+    };
+  }
+  const retryBtn = document.getElementById('retrySaveBtn');
+  if(retryBtn){
+    retryBtn.onclick = async ()=>{
+      retryBtn.innerText = 'Retrying…';
+      await Promise.all([save(), saveTemplates(), savePieceTemplates(), saveParamTemplates(), saveSubParamTemplates(), saveSubTypeTemplates(), saveCustomScripts()]);
+    };
+  }
+  const dismissBtn = document.getElementById('dismissSaveErrorBtn');
+  if(dismissBtn){
+    dismissBtn.onclick = ()=>{ state.saveError = null; render(); };
+  }
+  const dismissImportErrorBtn = document.getElementById('dismissImportErrorBtn');
+  if(dismissImportErrorBtn){
+    dismissImportErrorBtn.onclick = ()=>{ state.importError = null; render(); };
+  }
+  const confirmImportBtn = document.getElementById('confirmImportBtn');
+  if(confirmImportBtn) confirmImportBtn.onclick = applyPendingImport;
+  const cancelImportBtn = document.getElementById('cancelImportBtn');
+  if(cancelImportBtn) cancelImportBtn.onclick = cancelPendingImport;
+  const exportBtn = document.getElementById('exportDataBtn');
+  if(exportBtn){
+    exportBtn.onclick = ()=>{
+      const backup = {
+        exportedAt: new Date().toISOString(),
+        students: state.students,
+        templates: state.templates,
+        pieceTemplates: state.pieceTemplates,
+        paramTemplates: state.paramTemplates,
+        subParamTemplates: state.subParamTemplates,
+        subTypeTemplates: state.subTypeTemplates,
+        customScripts: state.customScripts
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `ladder-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+  }
+  const importBtn = document.getElementById('importDataBtn');
+  const importFile = document.getElementById('importDataFile');
+  if(importBtn && importFile){
+    importBtn.onclick = ()=> importFile.click();
+    importFile.onchange = ()=>{
+      const file = importFile.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        let parsed;
+        try{ parsed = JSON.parse(reader.result); }
+        catch(e){ state.importError = 'That file is not valid JSON.'; render(); return; }
+        if(!Array.isArray(parsed.students)){ state.importError = 'That file does not look like a Ladder backup (no student data found in it).'; render(); return; }
+        state.importError = null;
+        state.pendingImport = parsed;
+        render();
+      };
+      reader.readAsText(file);
+      importFile.value = '';
+    };
+  }
+  document.querySelectorAll('[data-edit-template]').forEach(el=>{
+    el.onclick = ()=>{
+      const [type, tid] = el.dataset.editTemplate.split('|');
+      state.templateEditMode = { type, tid };
+      render();
+    };
+  });
+  const closeTplEditorBtn = document.getElementById('closeTplEditorBtn');
+  if(closeTplEditorBtn) closeTplEditorBtn.onclick = ()=>{ state.templateEditMode = null; render(); };
+  const tplEditorOverlay = document.getElementById('tplEditorOverlay');
+  if(tplEditorOverlay) tplEditorOverlay.onclick = (e)=>{ if(e.target.id==='tplEditorOverlay'){ state.templateEditMode = null; render(); } };
+
+  // Exercise template editor CRUD
+  document.querySelectorAll('[data-ex-tpl-add-param]').forEach(el=>{
+    el.onclick = ()=>{ const tid = el.dataset.exTplAddParam; const inp = document.getElementById('exTplParamIn-'+tid); addExTplParam(tid, inp.value); };
+  });
+  document.querySelectorAll('[data-ex-tpl-remove-param]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, gid] = el.dataset.exTplRemoveParam.split('|'); removeExTplParam(tid, gid); };
+  });
+  document.querySelectorAll('[data-ex-tpl-add-subparam]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, gid] = el.dataset.exTplAddSubparam.split('|'); const inp = document.getElementById(`exTplSubparamIn-${tid}-${gid}`); addExTplSubparam(tid, gid, inp.value); };
+  });
+  document.querySelectorAll('[data-ex-tpl-remove-subparam]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, gid, sgid] = el.dataset.exTplRemoveSubparam.split('|'); removeExTplSubparam(tid, gid, sgid); };
+  });
+  document.querySelectorAll('[data-ex-tpl-add-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, gid, sgid] = el.dataset.exTplAddSubtype.split('|'); const inp = document.getElementById(`exTplSubtypeIn-${tid}-${gid}-${sgid}`); addExTplSubtype(tid, gid, sgid, inp.value); };
+  });
+  document.querySelectorAll('[data-ex-tpl-remove-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, gid, sgid, ssgid] = el.dataset.exTplRemoveSubtype.split('|'); removeExTplSubtype(tid, gid, sgid, ssgid); };
+  });
+  document.querySelectorAll('[data-ex-tpl-add-step]').forEach(el=>{
+    el.onclick = ()=>{
+      const [tid, gid, sgid, ssgid] = el.dataset.exTplAddStep.split('|');
+      const idSuffix = ssgid ? `${tid}-${gid}-${sgid}-${ssgid}` : (sgid ? `${tid}-${gid}-${sgid}` : `${tid}-${gid}`);
+      const inp = document.getElementById('exTplStepIn-'+idSuffix) || document.getElementById('exTplDirectStepIn-'+idSuffix) || document.getElementById('exTplDirectStepIn2-'+tid+'-'+gid);
+      if(inp) addExTplStep(tid, gid||null, sgid||null, ssgid||null, inp.value);
+    };
+  });
+  document.querySelectorAll('[data-ex-tpl-remove-step]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, stid] = el.dataset.exTplRemoveStep.split('|'); removeExTplStep(tid, stid); };
+  });
+
+  // Parameter template editor CRUD
+  document.querySelectorAll('[data-param-tpl-add-subparam]').forEach(el=>{
+    el.onclick = ()=>{ const tid = el.dataset.paramTplAddSubparam; const inp = document.getElementById('paramTplSubparamIn-'+tid); addParamTplSubparam(tid, inp.value); };
+  });
+  document.querySelectorAll('[data-param-tpl-remove-subparam]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, sgid] = el.dataset.paramTplRemoveSubparam.split('|'); removeParamTplSubparam(tid, sgid); };
+  });
+  document.querySelectorAll('[data-param-tpl-add-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, sgid] = el.dataset.paramTplAddSubtype.split('|'); const inp = document.getElementById(`paramTplSubtypeIn-${tid}-${sgid}`); addParamTplSubtype(tid, sgid, inp.value); };
+  });
+  document.querySelectorAll('[data-param-tpl-remove-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, sgid, ssgid] = el.dataset.paramTplRemoveSubtype.split('|'); removeParamTplSubtype(tid, sgid, ssgid); };
+  });
+  document.querySelectorAll('[data-param-tpl-add-step]').forEach(el=>{
+    el.onclick = ()=>{
+      const [tid, sgid, ssgid] = el.dataset.paramTplAddStep.split('|');
+      const idSuffix = ssgid ? `${tid}-${sgid}-${ssgid}` : (sgid ? `${tid}-${sgid}` : tid);
+      const inp = document.getElementById('paramTplStepIn-'+idSuffix) || document.getElementById('paramTplDirectStepIn-'+idSuffix) || document.getElementById('paramTplDirectStepIn2-'+tid);
+      if(inp) addParamTplStep(tid, sgid||null, ssgid||null, inp.value);
+    };
+  });
+  document.querySelectorAll('[data-param-tpl-remove-step]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, stid] = el.dataset.paramTplRemoveStep.split('|'); removeParamTplStep(tid, stid); };
+  });
+
+  // Sub-parameter template editor CRUD
+  document.querySelectorAll('[data-subparam-tpl-add-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const tid = el.dataset.subparamTplAddSubtype; const inp = document.getElementById('subparamTplSubtypeIn-'+tid); addSubParamTplSubtype(tid, inp.value); };
+  });
+  document.querySelectorAll('[data-subparam-tpl-remove-subtype]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, ssgid] = el.dataset.subparamTplRemoveSubtype.split('|'); removeSubParamTplSubtype(tid, ssgid); };
+  });
+  document.querySelectorAll('[data-subparam-tpl-add-step]').forEach(el=>{
+    el.onclick = ()=>{
+      const [tid, ssgid] = el.dataset.subparamTplAddStep.split('|');
+      const idSuffix = ssgid ? `${tid}-${ssgid}` : tid;
+      const inp = document.getElementById('subparamTplStepIn-'+idSuffix) || document.getElementById('subparamTplDirectStepIn-'+tid);
+      if(inp) addSubParamTplStep(tid, ssgid||null, inp.value);
+    };
+  });
+  document.querySelectorAll('[data-subparam-tpl-remove-step]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, stid] = el.dataset.subparamTplRemoveStep.split('|'); removeSubParamTplStep(tid, stid); };
+  });
+
+  // Sub-type template editor CRUD
+  document.querySelectorAll('[data-subtype-tpl-add-step]').forEach(el=>{
+    el.onclick = ()=>{ const tid = el.dataset.subtypeTplAddStep; const inp = document.getElementById('subtypeTplStepIn-'+tid); addSubTypeTplStep(tid, inp.value); };
+  });
+  document.querySelectorAll('[data-subtype-tpl-remove-step]').forEach(el=>{
+    el.onclick = ()=>{ const [tid, stid] = el.dataset.subtypeTplRemoveStep.split('|'); removeSubTypeTplStep(tid, stid); };
+  });
+
+  const ns = document.getElementById('newStudentName');
+  if(ns) ns.addEventListener('keydown', e=>{ if(e.key==='Enter') addStudentBtn.click(); });
+}
+
+load();
+</script>
+</body>
+</html>
