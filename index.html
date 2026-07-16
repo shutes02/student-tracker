@@ -1010,6 +1010,7 @@ function buildMessage(studentId){
   const s = getStudent(studentId);
   if(!s) return '';
   const STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
+  const STATUS_PRIORITY = { in_process: 0, needs_review: 1, refining: 2, not_started: 3 };
   const exGroups = [];
   let any = false;
   (s.pieces||[]).forEach(p=>{
@@ -1039,6 +1040,28 @@ function buildMessage(studentId){
         if(directItems.length || subparams.length) eg.params.push({ name: g.name, items: directItems, subparams });
       });
 
+      const itemsMinPriority = (items)=>{
+        let min = 99;
+        items.forEach(it=>{ min = Math.min(min, STATUS_PRIORITY[it.status]); });
+        return min;
+      };
+      const subtypeMinPriority = (te)=> itemsMinPriority(te.items);
+      const subparamMinPriority = (se)=>{
+        let min = itemsMinPriority(se.items);
+        se.subtypes.forEach(te=>{ min = Math.min(min, subtypeMinPriority(te)); });
+        return min;
+      };
+      const minPriority = (pe)=>{
+        let min = itemsMinPriority(pe.items);
+        pe.subparams.forEach(se=>{ min = Math.min(min, subparamMinPriority(se)); });
+        return min;
+      };
+      eg.params.forEach(pe=>{
+        pe.subparams.forEach(se=> se.subtypes.sort((a,b)=> subtypeMinPriority(a) - subtypeMinPriority(b)));
+        pe.subparams.sort((a,b)=> subparamMinPriority(a) - subparamMinPriority(b));
+      });
+      eg.params.sort((a,b)=> minPriority(a) - minPriority(b));
+
       if(eg.params.length){ any = true; exGroups.push(eg); }
     });
   });
@@ -1047,22 +1070,8 @@ function buildMessage(studentId){
   }
 
   const printItems = (items, indent)=>{
-    let out = '';
-    const groups = [];
-    items.forEach(it=>{
-      let g = groups.find(x=>x.status===it.status);
-      if(!g){ g = { status: it.status, labels: [] }; groups.push(g); }
-      g.labels.push(it.label);
-    });
-    groups.forEach(g=>{
-      if(g.labels.length===1){
-        out += `${indent}${STATUS_TAG[g.status]}: ${g.labels[0]}\n`;
-      } else {
-        out += `${indent}${STATUS_TAG[g.status]}:\n`;
-        g.labels.forEach(label=> out += `${indent}   ${label}\n`);
-      }
-    });
-    return out;
+    const sorted = [...items].sort((a,b)=> STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status]);
+    return sorted.map(it=> `${indent}${STATUS_TAG[it.status]}: ${it.label}\n`).join('');
   };
 
   let msg = `Here's the plan until our next check-in:\n\n`;
