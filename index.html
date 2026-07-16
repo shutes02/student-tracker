@@ -1953,11 +1953,7 @@ function render(){
       if(!ex.groups) ex.groups = [];
       const exHasActive = ex.steps.some(st=>st.thisWeek);
       if(!pieceHasActive) return '';
-      const stepsFor = (predicate)=>{
-        const active = ex.steps.filter(st=> predicate(st) && st.thisWeek);
-        if(active.length) return active;
-        return ex.steps.filter(predicate);
-      };
+      const stepsFor = (predicate)=> ex.steps.filter(predicate);
       const ungrouped = stepsFor(st=>!st.groupId);
       const ungroupedHTML = ungrouped.map(st=>stepRowHTML(p, ex, st)).join('');
 
