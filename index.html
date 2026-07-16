@@ -1949,22 +1949,28 @@ function render(){
         </div>`;
     }).join('');
 
-    const weeklyExerciseBlockHTML = (p, ex)=>{
+    const weeklyExerciseBlockHTML = (p, ex, pieceHasActive)=>{
       if(!ex.groups) ex.groups = [];
-      const ungrouped = ex.steps.filter(st=>!st.groupId && st.thisWeek);
+      const exHasActive = ex.steps.some(st=>st.thisWeek);
+      if(!pieceHasActive) return '';
+      const stepsFor = (predicate)=>{
+        const active = ex.steps.filter(st=> predicate(st) && st.thisWeek);
+        if(active.length) return active;
+        return ex.steps.filter(predicate);
+      };
+      const ungrouped = stepsFor(st=>!st.groupId);
       const ungroupedHTML = ungrouped.map(st=>stepRowHTML(p, ex, st)).join('');
 
       const groupSections = ex.groups.map((g, gIdx)=>{
         if(!g.subgroups) g.subgroups = [];
-        const directSteps = ex.steps.filter(st=>st.groupId===g.id && !st.subGroupId && st.thisWeek);
+        const directSteps = stepsFor(st=>st.groupId===g.id && !st.subGroupId);
         const directHTML = directSteps.map(st=>stepRowHTML(p, ex, st)).join('');
         const subSections = g.subgroups.map((sg, sgIdx)=>{
           if(!sg.subsubgroups) sg.subsubgroups = [];
-          const directSubSteps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId && st.thisWeek);
+          const directSubSteps = stepsFor(st=>st.groupId===g.id && st.subGroupId===sg.id && !st.subSubGroupId);
           const directSubHTML = directSubSteps.map(st=>stepRowHTML(p, ex, st)).join('');
           const subSubSections = sg.subsubgroups.map((ssg, ssgIdx)=>{
-            const steps = ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id && st.thisWeek);
-            if(steps.length===0) return '';
+            const steps = stepsFor(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id);
             const isSSCollapsed = state.collapsedSubSubgroups.has(ssg.id);
             const ssSummary = `${steps.length} item${steps.length===1?'':'s'}`;
             const ssPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}`;
@@ -1982,13 +1988,11 @@ function render(){
                   </div>
                   <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
                 </div>
-                ${isSSCollapsed ? '' : steps.map(st=>stepRowHTML(p, ex, st)).join('')}
+                ${isSSCollapsed ? '' : (steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>')}
               </div>`;
           }).join('');
-          const totalInSub = directSubSteps.length + sg.subsubgroups.reduce((n,ssg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id && st.thisWeek).length,0);
-          if(totalInSub===0) return '';
           const isSubCollapsed = state.collapsedSubgroups.has(sg.id);
-          const subSummary = `${totalInSub} item${totalInSub===1?'':'s'}`;
+          const subSummary = `${directSubSteps.length} item${directSubSteps.length===1?'':'s'}`;
           const sgPath = `${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}`;
           return `
             <div class="subgroup-block">
@@ -2015,10 +2019,8 @@ function render(){
             </div>`;
         }).join('');
 
-        const totalInGroup = directSteps.length + g.subgroups.reduce((n,sg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.thisWeek).length,0);
-        if(totalInGroup===0) return '';
         const isGroupCollapsed = state.collapsedGroups.has(g.id);
-        const groupSummary = `${totalInGroup} item${totalInGroup===1?'':'s'}`;
+        const groupSummary = `${directSteps.length} item${directSteps.length===1?'':'s'}`;
         const gPath = `${student.id}|${p.id}|${ex.id}|${g.id}`;
         return `
           <div class="group-block">
@@ -2045,14 +2047,9 @@ function render(){
           </div>`;
       }).join('');
 
-      const totalInEx = ungrouped.length + ex.groups.reduce((n,g)=>{
-        const dc = ex.steps.filter(st=>st.groupId===g.id && !st.subGroupId && st.thisWeek).length;
-        const sc = (g.subgroups||[]).reduce((m,sg)=>m+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.thisWeek).length,0);
-        return n+dc+sc;
-      },0);
-      if(totalInEx===0) return '';
+      const totalInEx = ex.steps.filter(st=>st.thisWeek).length;
       const isExCollapsed = state.collapsedExercises.has(ex.id);
-      const exSummary = `${totalInEx} item${totalInEx===1?'':'s'} this week`;
+      const exSummary = exHasActive ? `${totalInEx} item${totalInEx===1?'':'s'} this week` : 'nothing active this week';
       const exPath = `${student.id}|${p.id}|${ex.id}`;
       const exIdx = p.exercises.findIndex(e=>e.id===ex.id);
       return `
@@ -2095,7 +2092,8 @@ function render(){
     };
 
     const weekPieceSections = student.pieces.map((p, pIdx)=>{
-      const exBlocks = p.exercises.map(ex=>weeklyExerciseBlockHTML(p, ex)).filter(Boolean).join('');
+      const pieceHasActive = p.exercises.some(ex=>ex.steps.some(st=>st.thisWeek));
+      const exBlocks = p.exercises.map(ex=>weeklyExerciseBlockHTML(p, ex, pieceHasActive)).filter(Boolean).join('');
       if(!exBlocks) return '';
       let total = 0;
       p.exercises.forEach(ex=> ex.steps.forEach(st=>{ if(st.thisWeek) total++; }));
@@ -2564,6 +2562,7 @@ function bind(){
       const newView = el.dataset.view;
       if(newView==='templates' && state.view!=='templates') collapseAllTemplateCards();
       if(newView==='cumulative' && state.view!=='cumulative' && state.selected) applyDefaultCollapseForStudent(state.selected);
+      if(newView==='week' && state.view!=='week' && state.selected) applyDefaultCollapseForStudent(state.selected);
       state.view = newView;
       render();
     };
