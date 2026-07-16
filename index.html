@@ -1010,7 +1010,7 @@ function buildMessage(studentId){
   const s = getStudent(studentId);
   if(!s) return '';
   const STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
-  const STATUS_PRIORITY = { in_process: 0, needs_review: 1, refining: 2, not_started: 3 };
+  const STATUS_PRIORITY = { in_process: 0, refining: 1, needs_review: 2, not_started: 3 };
   const exGroups = [];
   let any = false;
   (s.pieces||[]).forEach(p=>{
