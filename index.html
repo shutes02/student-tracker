@@ -234,7 +234,7 @@ const SCRIPTS_KEY = 'custom-scripts-v1';
 const STATUS = ['not_started','in_process','refining','needs_review','locked_in'];
 const STATUS_LABEL = { not_started: 'Standby', in_process: 'Waiting for Submission', refining: 'Almost There', needs_review: 'Review', locked_in: 'Locked In' };
 
-let state = { students: [], templates: [], pieceTemplates: [], paramTemplates: [], subParamTemplates: [], subTypeTemplates: [], customScripts: [], selected: null, loaded: false, view: 'week', collapsedPieces: new Set(), collapsedExercises: new Set(), collapsedGroups: new Set(), collapsedSubgroups: new Set(), collapsedSubSubgroups: new Set(), collapsedTemplateCards: new Set(), collapsedTemplateRows: new Set(), saveError: null, lastInsertTarget: {}, templateEditMode: null, pendingImport: null, importError: null };
+let state = { students: [], templates: [], pieceTemplates: [], paramTemplates: [], subParamTemplates: [], subTypeTemplates: [], customScripts: [], selected: null, loaded: false, view: 'week', collapsedPieces: new Set(), collapsedExercises: new Set(), collapsedGroups: new Set(), collapsedSubgroups: new Set(), collapsedSubSubgroups: new Set(), collapsedTemplateCards: new Set(), collapsedTemplateRows: new Set(), saveError: null, lastInsertTarget: {}, templateEditMode: null, pendingImport: null, importError: null, studentSearch: '' };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -1103,7 +1103,7 @@ function buildMessage(studentId){
   msg += `✅ Locked In: nothing to send here, this one's holding steady, until further notice.\n\n`;
   msg += `Send the review clips first, then anything new.\n`;
   msg += `📌 Label each clip (e.g. "Review: Root Inversion") or just say the exercise name at the start of the video. Either works, I just need to know what I'm looking at.\n`;
-  msg += `📌 I review videos Monday through Friday. Any videos sent over the weekend will be reviewed the following Monday.`;
+  msg += `📌 I review videos Monday through Friday. Any submission sent Friday through the weekend gets reviewed the following Monday.`;
   return msg;
 }
 
@@ -1731,10 +1731,12 @@ function render(){
   const root = document.getElementById('root');
   if(!state.loaded){ root.innerHTML = `<div style="padding:40px;color:var(--string);">Loading…</div>`; return; }
 
-  const chips = state.students.map(s=>`
+  const searchTerm = state.studentSearch.trim().toLowerCase();
+  const visibleStudents = searchTerm ? state.students.filter(s=> s.name.toLowerCase().includes(searchTerm)) : state.students;
+  const chips = visibleStudents.map(s=>`
     <div class="student-chip ${s.id===state.selected?'active':''}" data-select="${s.id}">
       <span class="editable" data-edit="student|${s.id}" title="Double-click to rename">${escapeHTML(s.name)}</span><span class="chip-x" data-remove-student="${s.id}">×</span>
-    </div>`).join('');
+    </div>`).join('') || (searchTerm ? `<div class="hint">No students match "${escapeHTML(state.studentSearch)}".</div>` : '');
 
   let body = '';
   const student = state.selected ? getStudent(state.selected) : null;
@@ -2397,6 +2399,7 @@ function render(){
         </div>
       </div>
     ` : ''}
+    <input id="studentSearchInput" placeholder="Search students…" value="${escapeAttr(state.studentSearch)}" style="margin-bottom:10px;width:220px;">
     <div class="student-row">
       ${chips}
       <div class="add-student">
@@ -3075,6 +3078,19 @@ function bind(){
     el.onclick = ()=>{ const [tid, stid] = el.dataset.subtypeTplRemoveStep.split('|'); removeSubTypeTplStep(tid, stid); };
   });
 
+  const studentSearchInput = document.getElementById('studentSearchInput');
+  if(studentSearchInput){
+    studentSearchInput.oninput = ()=>{
+      const cursorPos = studentSearchInput.selectionStart;
+      state.studentSearch = studentSearchInput.value;
+      render();
+      const freshInput = document.getElementById('studentSearchInput');
+      if(freshInput){
+        freshInput.focus();
+        freshInput.setSelectionRange(cursorPos, cursorPos);
+      }
+    };
+  }
   const ns = document.getElementById('newStudentName');
   if(ns) ns.addEventListener('keydown', e=>{ if(e.key==='Enter') addStudentBtn.click(); });
 }
