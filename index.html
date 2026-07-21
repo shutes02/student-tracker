@@ -151,7 +151,7 @@ input:focus,select:focus{outline:1px solid var(--brass);}
 .legend-dot.needs_review{border-color:var(--sage);background:var(--sage);}
 .legend-dot.locked_in{border-color:var(--brass);background:var(--brass);}
 
-.msg-box{background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;color:var(--bone);}
+.msg-box{background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;white-space:pre-wrap;color:var(--bone);}
 .hint{font-size:11.5px;color:var(--string);margin-top:6px;line-height:1.5;}
 .list-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);gap:10px;}
 .list-row:last-child{border-bottom:none;}
@@ -637,17 +637,57 @@ function removeSubTypeTemplate(templateId){
 // ---- Template internal editing (Edit Template mode) ----
 function tplCollection(type){
   if(type==='exercise') return state.templates;
+  if(type==='piece') return state.pieceTemplates;
   if(type==='param') return state.paramTemplates;
   if(type==='subparam') return state.subParamTemplates;
   if(type==='subtype') return state.subTypeTemplates;
 }
 function tplSave(type){
   if(type==='exercise') saveTemplates();
+  else if(type==='piece') savePieceTemplates();
   else if(type==='param') saveParamTemplates();
   else if(type==='subparam') saveSubParamTemplates();
   else if(type==='subtype') saveSubTypeTemplates();
 }
 function findTpl(type, tid){ return (tplCollection(type)||[]).find(t=>t.id===tid); }
+
+function createBlankTemplate(type, name){
+  if(!name || !name.trim()) return;
+  const id = uid();
+  const title = name.trim();
+  if(type==='exercise'){
+    state.templates.push({ id, name: title, title, groups: [], steps: [] });
+    saveTemplates();
+  } else if(type==='piece'){
+    state.pieceTemplates.push({ id, name: title, title, exercises: [] });
+    savePieceTemplates();
+  } else if(type==='param'){
+    state.paramTemplates.push({ id, name: title, title, subgroups: [], steps: [] });
+    saveParamTemplates();
+  } else if(type==='subparam'){
+    state.subParamTemplates.push({ id, name: title, title, subsubgroups: [], steps: [] });
+    saveSubParamTemplates();
+  } else if(type==='subtype'){
+    state.subTypeTemplates.push({ id, name: title, title, steps: [] });
+    saveSubTypeTemplates();
+  }
+  if(type!=='piece') state.templateEditMode = { type, tid: id };
+  render();
+}
+function addPieceTplExercise(tid, name){
+  if(!name || !name.trim()) return;
+  const t = findTpl('piece', tid);
+  if(!t) return;
+  if(!t.exercises) t.exercises = [];
+  t.exercises.push({ id: uid(), name: name.trim() });
+  savePieceTemplates(); render();
+}
+function removePieceTplExercise(tid, eid){
+  const t = findTpl('piece', tid);
+  if(!t) return;
+  t.exercises = (t.exercises||[]).filter(e=>e.id!==eid);
+  savePieceTemplates(); render();
+}
 
 // Exercise templates (t.groups, t.steps) — full 3-level structure
 function addExTplParam(tid, name){
@@ -1096,11 +1136,11 @@ function buildMessage(studentId){
     msg += `\n`;
   });
   msg += `Key:\n`;
-  msg += `🌱 Waiting for submission: this week's new focus. Send it whenever it's ready.\n`;
-  msg += `⏸ Standby: hold off until I give the green light.\n`;
-  msg += `🔶 Almost there: got your video, just needs one or two more passes before it's locked in.\n`;
-  msg += `🔁 Review: already learned, keep it solid. Send these first.\n`;
-  msg += `✅ Locked In: nothing to send here, this one's holding steady, until further notice.\n\n`;
+  msg += `🌱 Waiting for submission: new, send when ready\n`;
+  msg += `⏸ Standby: hold off\n`;
+  msg += `🔶 Almost there: got your video, just needs one more pass\n`;
+  msg += `🔁 Review: learned, keep it sharp. Still send video\n`;
+  msg += `✅ Locked In: nothing to send\n\n`;
   msg += `Send the review clips first, then anything new.\n`;
   msg += `📌 Label each clip (e.g. "Review: Root Inversion") or just say the exercise name at the start of the video. Either works, I just need to know what I'm looking at.\n`;
   msg += `📌 I review videos Monday through Friday. Any submission sent Friday through the weekend gets reviewed the following Monday.`;
@@ -1280,6 +1320,7 @@ I review videos Monday through Friday. Anything sent Friday evening through Sund
 
 function escapeHTML(str){ const d=document.createElement('div'); d.innerText=str; return d.innerHTML; }
 function escapeAttr(str){ return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeTextareaContent(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 
 function startEdit(el, value){
   el.style.overflow = 'visible';
@@ -1524,8 +1565,9 @@ function renderExerciseTemplateTree(t){
 }
 
 function renderPieceTemplateTree(t){
-  const html = (t.exercises||[]).map(e=> tplTreeRow('exercise','Exercise', e.name, `tplPieceExercise|${t.id}|${e.id}`)).join('');
-  return `${tplTreeRow('piece','Piece', t.name, `pieceTemplate|${t.id}`)}${html || '<div class="hint">No exercises in this template.</div>'}`;
+  const html = (t.exercises||[]).map(e=> `<div class="step-row"><div class="step-label editable" data-edit="tplPieceExercise|${t.id}|${e.id}" title="Double-click to rename">${escapeHTML(e.name)}</div><button class="btn-ghost btn-tiny" data-piece-tpl-remove-exercise="${t.id}|${e.id}">Remove</button></div>`).join('');
+  const addRow = `<div class="tpl-editor-add-row"><input placeholder="New exercise name" id="pieceTplExIn-${t.id}"><button class="btn-primary btn-tiny" data-piece-tpl-add-exercise="${t.id}">+ Add exercise</button></div>`;
+  return `${tplTreeRow('piece','Piece', t.name, `pieceTemplate|${t.id}`)}${html || '<div class="hint">No exercises in this template.</div>'}${addRow}`;
 }
 
 function renderParamTemplateTree(t){
@@ -1817,7 +1859,12 @@ function render(){
                   <button class="btn-ghost btn-tiny" data-save-subtype-template="${ssPath}">Save as Template</button>
                   <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
                 </div>
-                ${isSSCollapsed ? '' : (steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>')}
+                ${isSSCollapsed ? '' : `
+                  <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                    <input placeholder="+ Add step, press Enter" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}" style="flex:1;font-size:12.5px;">
+                  </div>
+                  ${steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>'}
+                `}
               </div>`;
           }).join('');
           const totalStepsInSub = directSubSteps.length + sg.subsubgroups.reduce((n,ssg)=>n+ex.steps.filter(st=>st.groupId===g.id && st.subGroupId===sg.id && st.subSubGroupId===ssg.id).length,0);
@@ -1840,10 +1887,13 @@ function render(){
                 <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
               </div>
               ${isSubCollapsed ? '' : `
+                <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                  <input placeholder="+ Add step directly here, press Enter" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                </div>
                 ${directSubHTML || (sg.subsubgroups.length ? '' : '<div class="hint">No steps yet.</div>')}
                 ${subSubSections}
                 <div class="add-subsubgroup-row">
-                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}">
+                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
                   <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
                 </div>
               `}
@@ -1869,10 +1919,13 @@ function render(){
               <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
             </div>
             ${isGroupCollapsed ? '' : `
+              <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                <input placeholder="+ Add step directly here, press Enter" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+              </div>
               ${directHTML || (g.subgroups.length ? '' : '<div class="hint">No steps in this parameter yet.</div>')}
               ${subSections}
               <div class="add-subgroup-row">
-                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}">
+                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
                 <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
               </div>
             `}
@@ -1996,7 +2049,12 @@ function render(){
                   </div>
                   <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
                 </div>
-                ${isSSCollapsed ? '' : (steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>')}
+                ${isSSCollapsed ? '' : `
+                  <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                    <input placeholder="+ Add step, press Enter" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}" style="flex:1;font-size:12.5px;">
+                  </div>
+                  ${steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>'}
+                `}
               </div>`;
           }).join('');
           const isSubCollapsed = state.collapsedSubgroups.has(sg.id);
@@ -2017,10 +2075,13 @@ function render(){
                 <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
               </div>
               ${isSubCollapsed ? '' : `
+                <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                  <input placeholder="+ Add step directly here, press Enter" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                </div>
                 ${directSubHTML}
                 ${subSubSections}
                 <div class="add-subsubgroup-row">
-                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}">
+                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
                   <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
                 </div>
               `}
@@ -2045,10 +2106,13 @@ function render(){
               <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
             </div>
             ${isGroupCollapsed ? '' : `
+              <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
+                <input placeholder="+ Add step directly here, press Enter" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+              </div>
               ${directHTML}
               ${subSections}
               <div class="add-subgroup-row">
-                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}">
+                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
                 <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
               </div>
             `}
@@ -2134,7 +2198,8 @@ function render(){
     const messageCard = `
       <div class="card">
         <div class="card-title">Next Slack message <button class="btn-ghost btn-tiny" id="copyBtn">Copy</button></div>
-        <div class="msg-box" id="msgBox">${escapeHTML(buildMessage(student.id))}</div>
+        <div class="hint" style="margin-bottom:8px;">Feel free to edit before copying.</div>
+        <textarea class="msg-box" id="msgBox" style="width:100%;min-height:320px;border:1px dashed var(--hairline);resize:vertical;">${escapeTextareaContent(buildMessage(student.id))}</textarea>
       </div>`;
 
     const explainerCard = `
@@ -2158,6 +2223,7 @@ function render(){
         <div class="card-title tplcard-title" data-toggle-tplcard="exercise">${isExTplCardCollapsed?'▸':'▾'} Exercise Template Library</div>
         ${isExTplCardCollapsed ? '' : `
           <div class="hint" style="margin-bottom:10px;">Save an exercise and its whole tree (parameters, sub-parameters, sub-types, steps), then drop a fresh copy into any piece for this student.</div>
+          <button class="btn-primary btn-tiny" id="newExerciseTplBtn" style="margin-bottom:12px;">+ New Exercise Template</button>
           ${state.templates.length ? renderGroupedTemplateRows(
             state.templates,
             t=> t.sourcePiece || 'Other',
@@ -2183,6 +2249,7 @@ function render(){
         <div class="card-title tplcard-title" data-toggle-tplcard="piece">${isPieceTplCardCollapsed?'▸':'▾'} Piece Template Library</div>
         ${isPieceTplCardCollapsed ? '' : `
           <div class="hint" style="margin-bottom:10px;">Save the exercise category names inside a piece as a starter list (no parameters or steps), then use it to spin up a brand-new piece with those categories already in place, for this student.</div>
+          <button class="btn-primary btn-tiny" id="newPieceTplBtn" style="margin-bottom:12px;">+ New Piece Template</button>
           ${state.pieceTemplates.length ? state.pieceTemplates.map(t=> templateRowHTML(
             t, `pieceTemplateTitle|${t.id}`,
             `${(t.exercises||[]).length} exercise${(t.exercises||[]).length===1?'':'s'}`,
@@ -2298,15 +2365,26 @@ function render(){
         </div>`;
     }).join('');
 
+    const buildFromScratchCard = `
+      <div class="card">
+        <div class="card-title">Build a New Template From Scratch</div>
+        <div class="hint" style="margin-bottom:10px;">Start with a blank Parameter, Sub-parameter, or Sub-type and build it out directly, instead of saving one from an existing exercise.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button class="btn-primary btn-tiny" id="newParamTplBtn">+ New Parameter Template</button>
+          <button class="btn-primary btn-tiny" id="newSubParamTplBtn">+ New Sub-parameter Template</button>
+          <button class="btn-primary btn-tiny" id="newSubTypeTplBtn">+ New Sub-type Template</button>
+        </div>
+      </div>`;
+
     const exerciseContentTemplateLibraryCard = allExerciseContentRows.length
       ? exerciseContentCards
       : `<div class="card">
           <div class="card-title">Exercise Content Templates</div>
           <div class="hint" style="margin-bottom:10px;">Parameters, sub-parameters, and sub-types you've saved will each show up here in their own box, named after the exercise they came from.</div>
-          <div class="empty">No parameter, sub-parameter, or sub-type templates saved yet. Use "Save as Template" on any of those levels in the Cumulative tab.</div>
+          <div class="empty">No parameter, sub-parameter, or sub-type templates saved yet. Use "Save as Template" on any of those levels in the Cumulative tab, or build one from scratch below.</div>
         </div>`;
 
-    const templatesCard = pieceTemplateLibraryCard + templateLibraryCard + exerciseContentTemplateLibraryCard;
+    const templatesCard = pieceTemplateLibraryCard + templateLibraryCard + exerciseContentTemplateLibraryCard + buildFromScratchCard;
 
     const cumulativeCard = `
       <div class="card">
@@ -2894,7 +2972,7 @@ function bind(){
   });
   const copyBtn = document.getElementById('copyBtn');
   if(copyBtn){
-    copyBtn.onclick = ()=> copyText(document.getElementById('msgBox').innerText, copyBtn);
+    copyBtn.onclick = ()=> copyText(document.getElementById('msgBox').value, copyBtn);
   }
   const copyExplainerBtn = document.getElementById('copyExplainerBtn');
   if(copyExplainerBtn){
@@ -3078,6 +3156,97 @@ function bind(){
     el.onclick = ()=>{ const [tid, stid] = el.dataset.subtypeTplRemoveStep.split('|'); removeSubTypeTplStep(tid, stid); };
   });
 
+  const newExerciseTplBtn = document.getElementById('newExerciseTplBtn');
+  if(newExerciseTplBtn){
+    newExerciseTplBtn.onclick = ()=> promptInline(newExerciseTplBtn, '', (name)=>{
+      if(name && name.trim()) createBlankTemplate('exercise', name);
+      else render();
+    });
+  }
+  const newPieceTplBtn = document.getElementById('newPieceTplBtn');
+  if(newPieceTplBtn){
+    newPieceTplBtn.onclick = ()=> promptInline(newPieceTplBtn, '', (name)=>{
+      if(name && name.trim()) createBlankTemplate('piece', name);
+      else render();
+    });
+  }
+  const newParamTplBtn = document.getElementById('newParamTplBtn');
+  if(newParamTplBtn){
+    newParamTplBtn.onclick = ()=> promptInline(newParamTplBtn, '', (name)=>{
+      if(name && name.trim()) createBlankTemplate('param', name);
+      else render();
+    });
+  }
+  const newSubParamTplBtn = document.getElementById('newSubParamTplBtn');
+  if(newSubParamTplBtn){
+    newSubParamTplBtn.onclick = ()=> promptInline(newSubParamTplBtn, '', (name)=>{
+      if(name && name.trim()) createBlankTemplate('subparam', name);
+      else render();
+    });
+  }
+  const newSubTypeTplBtn = document.getElementById('newSubTypeTplBtn');
+  if(newSubTypeTplBtn){
+    newSubTypeTplBtn.onclick = ()=> promptInline(newSubTypeTplBtn, '', (name)=>{
+      if(name && name.trim()) createBlankTemplate('subtype', name);
+      else render();
+    });
+  }
+  document.querySelectorAll('[data-piece-tpl-add-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const tid = el.dataset.pieceTplAddExercise;
+      const inp = document.getElementById('pieceTplExIn-'+tid);
+      addPieceTplExercise(tid, inp.value);
+    };
+  });
+  document.querySelectorAll('[data-piece-tpl-remove-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const [tid, eid] = el.dataset.pieceTplRemoveExercise.split('|');
+      removePieceTplExercise(tid, eid);
+    };
+  });
+  document.querySelectorAll('[data-add-subgroup-path]').forEach(inp=>{
+    inp.onkeydown = (e)=>{
+      if(e.key!=='Enter') return;
+      e.preventDefault();
+      if(!inp.value.trim()) return;
+      const [sid, pid, eid, gid] = inp.dataset.addSubgroupPath.split('|');
+      const inputId = inp.id;
+      addSubgroup(sid, pid, eid, gid, inp.value);
+      setTimeout(()=>{
+        const fresh = document.getElementById(inputId);
+        if(fresh) fresh.focus();
+      }, 0);
+    };
+  });
+  document.querySelectorAll('[data-add-subsubgroup-path]').forEach(inp=>{
+    inp.onkeydown = (e)=>{
+      if(e.key!=='Enter') return;
+      e.preventDefault();
+      if(!inp.value.trim()) return;
+      const [sid, pid, eid, gid, sgid] = inp.dataset.addSubsubgroupPath.split('|');
+      const inputId = inp.id;
+      addSubSubgroup(sid, pid, eid, gid, sgid, inp.value);
+      setTimeout(()=>{
+        const fresh = document.getElementById(inputId);
+        if(fresh) fresh.focus();
+      }, 0);
+    };
+  });
+  document.querySelectorAll('[data-quickstep-path]').forEach(el=>{
+    el.onkeydown = (e)=>{
+      if(e.key!=='Enter') return;
+      e.preventDefault();
+      const label = el.value;
+      if(!label.trim()) return;
+      const [sid, pid, eid, gid, sgid, ssgid] = el.dataset.quickstepPath.split('|');
+      const inputId = el.id;
+      addStep(sid, pid, eid, label, gid||null, sgid||null, ssgid||null, false);
+      setTimeout(()=>{
+        const freshInput = document.getElementById(inputId);
+        if(freshInput) freshInput.focus();
+      }, 0);
+    };
+  });
   const studentSearchInput = document.getElementById('studentSearchInput');
   if(studentSearchInput){
     studentSearchInput.oninput = ()=>{
