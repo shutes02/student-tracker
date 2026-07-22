@@ -32,6 +32,7 @@ h1{font-family:'Bitter',serif;font-size:23px;font-weight:700;margin:0 0 4px;colo
 .student-chip{padding:7px 14px;border-radius:20px;background:var(--rosewood);border:1px solid var(--hairline);font-size:13px;font-weight:500;cursor:pointer;color:var(--bone-dim);}
 .student-chip.active{background:var(--brass);color:var(--walnut);border-color:var(--brass);}
 .student-chip .chip-x{margin-left:8px;color:var(--string);font-weight:700;}
+.student-chip .chip-x.confirm-delete{color:var(--rust);background:rgba(178,78,56,.2);padding:2px 6px;border-radius:6px;font-size:11px;}
 .student-chip.active .chip-x{color:var(--walnut);opacity:.6;}
 .add-student{display:flex;gap:6px;align-items:center;}
 .add-student input{width:150px;}
@@ -234,7 +235,7 @@ const SCRIPTS_KEY = 'custom-scripts-v1';
 const STATUS = ['not_started','in_process','refining','needs_review','locked_in'];
 const STATUS_LABEL = { not_started: 'Standby', in_process: 'Waiting for Submission', refining: 'Almost There', needs_review: 'Review', locked_in: 'Locked In' };
 
-let state = { students: [], templates: [], pieceTemplates: [], paramTemplates: [], subParamTemplates: [], subTypeTemplates: [], customScripts: [], selected: null, loaded: false, view: 'week', collapsedPieces: new Set(), collapsedExercises: new Set(), collapsedGroups: new Set(), collapsedSubgroups: new Set(), collapsedSubSubgroups: new Set(), collapsedTemplateCards: new Set(), collapsedTemplateRows: new Set(), saveError: null, lastInsertTarget: {}, templateEditMode: null, pendingImport: null, importError: null, studentSearch: '' };
+let state = { students: [], templates: [], pieceTemplates: [], paramTemplates: [], subParamTemplates: [], subTypeTemplates: [], customScripts: [], selected: null, loaded: false, view: 'week', collapsedPieces: new Set(), collapsedExercises: new Set(), collapsedGroups: new Set(), collapsedSubgroups: new Set(), collapsedSubSubgroups: new Set(), collapsedTemplateCards: new Set(), collapsedTemplateRows: new Set(), saveError: null, lastInsertTarget: {}, templateEditMode: null, pendingImport: null, importError: null, studentSearch: '', pendingDeleteStudentId: null };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -1324,12 +1325,13 @@ function escapeAttr(str){ return String(str).replace(/&/g,'&amp;').replace(/"/g,
 function escapeTextareaContent(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 
 function startEdit(el, value){
+  const originalWidth = Math.max(Math.round(el.getBoundingClientRect().width), 140);
   el.style.overflow = 'visible';
   el.style.textOverflow = 'clip';
   el.style.whiteSpace = 'normal';
   el.style.flex = '1';
-  el.style.minWidth = '220px';
-  el.innerHTML = `<input class="inline-edit" style="min-width:220px;width:100%;box-sizing:border-box;" value="${escapeAttr(value)}">`;
+  el.style.minWidth = originalWidth + 'px';
+  el.innerHTML = `<input class="inline-edit" style="min-width:${originalWidth}px;width:100%;box-sizing:border-box;" value="${escapeAttr(value)}">`;
   const input = el.querySelector('input');
   input.focus();
   input.select();
@@ -1776,10 +1778,13 @@ function render(){
 
   const searchTerm = state.studentSearch.trim().toLowerCase();
   const visibleStudents = searchTerm ? state.students.filter(s=> s.name.toLowerCase().includes(searchTerm)) : state.students;
-  const chips = visibleStudents.map(s=>`
+  const chips = visibleStudents.map(s=>{
+    const isPendingDelete = state.pendingDeleteStudentId === s.id;
+    return `
     <div class="student-chip ${s.id===state.selected?'active':''}" data-select="${s.id}">
-      <span class="editable" data-edit="student|${s.id}" title="Double-click to rename">${escapeHTML(s.name)}</span><span class="chip-x" data-remove-student="${s.id}">×</span>
-    </div>`).join('') || (searchTerm ? `<div class="hint">No students match "${escapeHTML(state.studentSearch)}".</div>` : '');
+      <span class="editable" data-edit="student|${s.id}" title="Double-click to rename">${escapeHTML(s.name)}</span><span class="chip-x ${isPendingDelete?'confirm-delete':''}" data-remove-student="${s.id}" title="${isPendingDelete?'Click again to confirm delete':'Remove student'}">${isPendingDelete?'Delete?':'×'}</span>
+    </div>`;
+  }).join('') || (searchTerm ? `<div class="hint">No students match "${escapeHTML(state.studentSearch)}".</div>` : '');
 
   let body = '';
   const student = state.selected ? getStudent(state.selected) : null;
@@ -2665,7 +2670,20 @@ function bind(){
     };
   });
   document.querySelectorAll('[data-remove-student]').forEach(el=>{
-    el.onclick = (e)=>{ e.stopPropagation(); removeStudent(el.dataset.removeStudent); };
+    el.onclick = (e)=>{
+      e.stopPropagation();
+      const id = el.dataset.removeStudent;
+      if(state.pendingDeleteStudentId === id){
+        removeStudent(id);
+        state.pendingDeleteStudentId = null;
+      } else {
+        state.pendingDeleteStudentId = id;
+        render();
+        setTimeout(()=>{
+          if(state.pendingDeleteStudentId === id){ state.pendingDeleteStudentId = null; render(); }
+        }, 3000);
+      }
+    };
   });
   const addStudentBtn = document.getElementById('addStudentBtn');
   if(addStudentBtn) addStudentBtn.onclick = ()=>{
