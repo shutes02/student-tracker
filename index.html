@@ -153,6 +153,8 @@ input:focus,select:focus{outline:1px solid var(--brass);}
 .legend-dot.locked_in{border-color:var(--brass);background:var(--brass);}
 
 .msg-box{background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;white-space:pre-wrap;color:var(--bone);}
+.exercise-jump-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;color:var(--sage);font-weight:600;}
+.exercise-jump-link:hover{color:var(--brass);}
 .hint{font-size:11.5px;color:var(--string);margin-top:6px;line-height:1.5;}
 .list-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);gap:10px;}
 .list-row:last-child{border-bottom:none;}
@@ -1047,19 +1049,19 @@ function toggleThisWeek(studentId, pieceId, exerciseId, stepId){
   save(); render();
 }
 
-function buildMessage(studentId){
+const MSG_STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
+const MSG_STATUS_PRIORITY = { in_process: 0, refining: 1, needs_review: 2, not_started: 3 };
+
+function collectWeeklyExerciseGroups(studentId){
   const s = getStudent(studentId);
-  if(!s) return '';
-  const STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
-  const STATUS_PRIORITY = { in_process: 0, refining: 1, needs_review: 2, not_started: 3 };
+  if(!s) return { student: null, exGroups: [] };
   const exGroups = [];
-  let any = false;
   (s.pieces||[]).forEach(p=>{
     p.exercises.forEach(ex=>{
       const flagged = ex.steps.filter(st=>st.thisWeek);
       if(flagged.length===0) return;
       const loc = `${p.name}: ${ex.name}`;
-      const eg = { loc, params: [] };
+      const eg = { loc, pieceId: p.id, exerciseId: ex.id, params: [] };
 
       const toItem = st=>({ label: st.label, status: st.status });
 
@@ -1083,7 +1085,7 @@ function buildMessage(studentId){
 
       const itemsMinPriority = (items)=>{
         let min = 99;
-        items.forEach(it=>{ min = Math.min(min, STATUS_PRIORITY[it.status]); });
+        items.forEach(it=>{ min = Math.min(min, MSG_STATUS_PRIORITY[it.status]); });
         return min;
       };
       const subtypeMinPriority = (te)=> itemsMinPriority(te.items);
@@ -1103,16 +1105,22 @@ function buildMessage(studentId){
       });
       eg.params.sort((a,b)=> minPriority(a) - minPriority(b));
 
-      if(eg.params.length){ any = true; exGroups.push(eg); }
+      if(eg.params.length) exGroups.push(eg);
     });
   });
-  if(!any){
+  return { student: s, exGroups };
+}
+
+function buildMessage(studentId){
+  const { student: s, exGroups } = collectWeeklyExerciseGroups(studentId);
+  if(!s) return '';
+  if(!exGroups.length){
     return `Nothing flagged "This Week" yet for ${s.name}. Toggle on the steps you want to assign, below.`;
   }
 
   const printItems = (items, indent)=>{
-    const sorted = [...items].sort((a,b)=> STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status]);
-    return sorted.map(it=> `${indent}${STATUS_TAG[it.status]}: ${it.label}\n`).join('');
+    const sorted = [...items].sort((a,b)=> MSG_STATUS_PRIORITY[a.status] - MSG_STATUS_PRIORITY[b.status]);
+    return sorted.map(it=> `${indent}${MSG_STATUS_TAG[it.status]}: ${it.label}\n`).join('');
   };
 
   let msg = `Here's the plan until our next check-in:\n\n`;
@@ -1145,6 +1153,52 @@ function buildMessage(studentId){
   msg += `✅ Locked In: nothing to send\n\n`;
   msg += `Send the review clips first, then anything new.\n`;
   msg += `📌 Label each clip (e.g. "Review: Root Inversion") or just say the exercise name at the start of the video. Either works, I just need to know what I'm looking at.\n`;
+  msg += `📌 I review videos Monday through Friday. Any submission sent Friday through the weekend gets reviewed the following Monday.`;
+  return msg;
+}
+
+function buildMessageHTML(studentId){
+  const { student: s, exGroups } = collectWeeklyExerciseGroups(studentId);
+  if(!s) return '';
+  if(!exGroups.length){
+    return escapeHTML(`Nothing flagged "This Week" yet for ${s.name}. Toggle on the steps you want to assign, below.`);
+  }
+
+  const printItems = (items, indent)=>{
+    const sorted = [...items].sort((a,b)=> MSG_STATUS_PRIORITY[a.status] - MSG_STATUS_PRIORITY[b.status]);
+    return sorted.map(it=> `${indent}${MSG_STATUS_TAG[it.status]}: ${escapeHTML(it.label)}<br>`).join('');
+  };
+
+  let msg = `Here's the plan until our next check-in:<br><br>`;
+  exGroups.forEach(eg=>{
+    msg += `<span class="exercise-jump-link" data-jump-student="${studentId}" data-jump-piece="${eg.pieceId}" data-jump-exercise="${eg.exerciseId}" title="Click to jump to this exercise in Cumulative">🎵 ${escapeHTML(eg.loc)}</span><br>`;
+    eg.params.forEach(pe=>{
+      const i1 = pe.name ? '   ' : '';
+      if(pe.name) msg += `${i1}${escapeHTML(pe.name)}<br>`;
+      const i2 = pe.name ? '      ' : '   ';
+      msg += printItems(pe.items, i2);
+      pe.subparams.forEach(se=>{
+        msg += `${i2}${escapeHTML(se.name)}<br>`;
+        const i3 = i2 + '   ';
+        msg += printItems(se.items, i3);
+        se.subtypes.forEach(te=>{
+          msg += `${i3}${escapeHTML(te.name)}<br>`;
+          const i4 = i3 + '   ';
+          msg += printItems(te.items, i4);
+        });
+      });
+    });
+    msg += `<br>`;
+  });
+  msg += `━━━━━━━━━━━━━━━━━━━━<br>`;
+  msg += `<strong>Key:</strong><br>`;
+  msg += `🌱 Waiting for submission: new, send when ready<br>`;
+  msg += `⏸ Standby: hold off<br>`;
+  msg += `🔶 Almost there: got your video, just needs one more pass<br>`;
+  msg += `🔁 Review: learned, keep it sharp. Still send video<br>`;
+  msg += `✅ Locked In: nothing to send<br><br>`;
+  msg += `Send the review clips first, then anything new.<br>`;
+  msg += `📌 Label each clip (e.g. "Review: Root Inversion") or just say the exercise name at the start of the video. Either works, I just need to know what I'm looking at.<br>`;
   msg += `📌 I review videos Monday through Friday. Any submission sent Friday through the weekend gets reviewed the following Monday.`;
   return msg;
 }
@@ -2204,8 +2258,8 @@ function render(){
     const messageCard = `
       <div class="card">
         <div class="card-title">Next Slack message <button class="btn-ghost btn-tiny" id="copyBtn">Copy</button></div>
-        <div class="hint" style="margin-bottom:8px;">Feel free to edit before copying.</div>
-        <textarea class="msg-box" id="msgBox" style="width:100%;min-height:320px;border:1px dashed var(--hairline);resize:vertical;">${escapeTextareaContent(buildMessage(student.id))}</textarea>
+        <div class="hint" style="margin-bottom:8px;">Click any exercise name to jump to it in Cumulative.</div>
+        <div class="msg-box" id="msgBox">${buildMessageHTML(student.id)}</div>
       </div>`;
 
     const explainerCard = `
@@ -2989,9 +3043,41 @@ function bind(){
       setStepSubSubgroup(sid, pid, eid, stid, el.value);
     };
   });
+  document.querySelectorAll('.exercise-jump-link').forEach(el=>{
+    el.onclick = ()=>{
+      const sid = el.dataset.jumpStudent;
+      const pid = el.dataset.jumpPiece;
+      const eid = el.dataset.jumpExercise;
+      state.selected = sid;
+      state.view = 'cumulative';
+      state.collapsedPieces.delete(pid);
+      state.collapsedExercises.delete(eid);
+      const ex = getExercise(sid, pid, eid);
+      if(ex){
+        (ex.groups||[]).forEach(g=>{
+          state.collapsedGroups.delete(g.id);
+          (g.subgroups||[]).forEach(sg=>{
+            state.collapsedSubgroups.delete(sg.id);
+            (sg.subsubgroups||[]).forEach(ssg=> state.collapsedSubSubgroups.delete(ssg.id));
+          });
+        });
+      }
+      render();
+      setTimeout(()=>{
+        const toggle = document.querySelector(`[data-toggle-exercise="${eid}"]`);
+        const block = toggle ? toggle.closest('.exercise-block') : null;
+        if(block){
+          block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          block.style.transition = 'background 0.4s';
+          block.style.background = 'rgba(195,155,87,.25)';
+          setTimeout(()=>{ block.style.background = ''; }, 1600);
+        }
+      }, 50);
+    };
+  });
   const copyBtn = document.getElementById('copyBtn');
   if(copyBtn){
-    copyBtn.onclick = ()=> copyText(document.getElementById('msgBox').value, copyBtn);
+    copyBtn.onclick = ()=> copyText(buildMessage(state.selected), copyBtn);
   }
   const copyExplainerBtn = document.getElementById('copyExplainerBtn');
   if(copyExplainerBtn){
