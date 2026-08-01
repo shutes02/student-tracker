@@ -179,6 +179,8 @@ input:focus,select:focus{outline:1px solid var(--brass);}
 .tpl-editor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px;}
 .tpl-editor-title{font-family:'Bitter',serif;font-weight:700;font-size:19px;color:var(--bone);}
 .tpl-editor-add-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px;padding:10px;background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;}
+.tpl-bulk-check{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--bone-dim);margin:-10px 0 16px 2px;cursor:pointer;}
+.tpl-bulk-check input{cursor:pointer;}
 .tpl-editor-add-row input{flex:1;min-width:160px;}
 .tpltree{padding:4px 0 12px 18px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.9;}
 .tpltree-row{display:flex;gap:6px;align-items:baseline;}
@@ -792,6 +794,42 @@ function addExTplStep(tid, groupId, subGroupId, subSubGroupId, label, subSubSubG
   t.steps.push({ id: uid(), label: label.trim(), groupId: groupId||null, subGroupId: subGroupId||null, subSubGroupId: subSubGroupId||null, subSubSubGroupId: subSubSubGroupId||null });
   tplSave('exercise'); render();
 }
+function bulkAddExTplStepToParamSiblings(tid, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('exercise', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  (t.groups||[]).forEach(g=>{
+    t.steps.push({ id: uid(), label: label.trim(), groupId: g.id, subGroupId: null, subSubGroupId: null, subSubSubGroupId: null });
+  });
+  tplSave('exercise'); render();
+}
+function bulkAddExTplStepToSubparamSiblings(tid, groupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); if(!g) return;
+  if(!t.steps) t.steps = [];
+  (g.subgroups||[]).forEach(sg=>{
+    t.steps.push({ id: uid(), label: label.trim(), groupId: groupId, subGroupId: sg.id, subSubGroupId: null, subSubSubGroupId: null });
+  });
+  tplSave('exercise'); render();
+}
+function bulkAddExTplStepToSubtypeSiblings(tid, groupId, subGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  if(!t.steps) t.steps = [];
+  (sg.subsubgroups||[]).forEach(ssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), groupId: groupId, subGroupId: subGroupId, subSubGroupId: ssg.id, subSubSubGroupId: null });
+  });
+  tplSave('exercise'); render();
+}
+function bulkAddExTplStepToSubsubtypeSiblings(tid, groupId, subGroupId, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('exercise', tid); const g = t && (t.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===subSubGroupId); if(!ssg) return;
+  if(!t.steps) t.steps = [];
+  (ssg.subsubsubgroups||[]).forEach(sssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), groupId: groupId, subGroupId: subGroupId, subSubGroupId: subSubGroupId, subSubSubGroupId: sssg.id });
+  });
+  tplSave('exercise'); render();
+}
 function removeExTplStep(tid, stepId){
   const t = findTpl('exercise', tid); if(!t) return;
   t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
@@ -845,6 +883,33 @@ function addParamTplStep(tid, subGroupId, subSubGroupId, label, subSubSubGroupId
   t.steps.push({ id: uid(), label: label.trim(), subGroupId: subGroupId||null, subSubGroupId: subSubGroupId||null, subSubSubGroupId: subSubSubGroupId||null });
   tplSave('param'); render();
 }
+function bulkAddParamTplStepToSubparamSiblings(tid, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('param', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  (t.subgroups||[]).forEach(sg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subGroupId: sg.id, subSubGroupId: null, subSubSubGroupId: null });
+  });
+  tplSave('param'); render();
+}
+function bulkAddParamTplStepToSubtypeSiblings(tid, subGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('param', tid); const sg = t && (t.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  if(!t.steps) t.steps = [];
+  (sg.subsubgroups||[]).forEach(ssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subGroupId: subGroupId, subSubGroupId: ssg.id, subSubSubGroupId: null });
+  });
+  tplSave('param'); render();
+}
+function bulkAddParamTplStepToSubsubtypeSiblings(tid, subGroupId, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('param', tid); const sg = t && (t.subgroups||[]).find(x=>x.id===subGroupId); const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===subSubGroupId); if(!ssg) return;
+  if(!t.steps) t.steps = [];
+  (ssg.subsubsubgroups||[]).forEach(sssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subGroupId: subGroupId, subSubGroupId: subSubGroupId, subSubSubGroupId: sssg.id });
+  });
+  tplSave('param'); render();
+}
 function removeParamTplStep(tid, stepId){
   const t = findTpl('param', tid); if(!t) return;
   t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
@@ -885,6 +950,24 @@ function addSubParamTplStep(tid, subSubGroupId, label, subSubSubGroupId){
   t.steps.push({ id: uid(), label: label.trim(), subSubGroupId: subSubGroupId||null, subSubSubGroupId: subSubSubGroupId||null });
   tplSave('subparam'); render();
 }
+function bulkAddSubParamTplStepToSubtypeSiblings(tid, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('subparam', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  (t.subsubgroups||[]).forEach(ssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subSubGroupId: ssg.id, subSubSubGroupId: null });
+  });
+  tplSave('subparam'); render();
+}
+function bulkAddSubParamTplStepToSubsubtypeSiblings(tid, subSubGroupId, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('subparam', tid); const ssg = t && (t.subsubgroups||[]).find(x=>x.id===subSubGroupId); if(!ssg) return;
+  if(!t.steps) t.steps = [];
+  (ssg.subsubsubgroups||[]).forEach(sssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subSubGroupId: subSubGroupId, subSubSubGroupId: sssg.id });
+  });
+  tplSave('subparam'); render();
+}
 function removeSubParamTplStep(tid, stepId){
   const t = findTpl('subparam', tid); if(!t) return;
   t.steps = (t.steps||[]).filter(st=>st.id!==stepId);
@@ -910,6 +993,15 @@ function addSubTypeTplStep(tid, label, subSubSubGroupId){
   const t = findTpl('subtype', tid); if(!t) return;
   if(!t.steps) t.steps = [];
   t.steps.push({ id: uid(), label: label.trim(), subSubSubGroupId: subSubSubGroupId||null });
+  tplSave('subtype'); render();
+}
+function bulkAddSubTypeTplStepToSubsubtypeSiblings(tid, label){
+  if(!label || !label.trim()) return;
+  const t = findTpl('subtype', tid); if(!t) return;
+  if(!t.steps) t.steps = [];
+  (t.subsubsubgroups||[]).forEach(sssg=>{
+    t.steps.push({ id: uid(), label: label.trim(), subSubSubGroupId: sssg.id });
+  });
   tplSave('subtype'); render();
 }
 function removeSubTypeTplStep(tid, stepId){
@@ -993,7 +1085,41 @@ function removeExercise(studentId, pieceId, exerciseId){
 function addStep(studentId, pieceId, exerciseId, label, groupId, subGroupId, subSubGroupId, thisWeek, subSubSubGroupId){
   if(!label.trim()) return;
   const ex = getExercise(studentId, pieceId, exerciseId);
-  ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: !!thisWeek, groupId: groupId || null, subGroupId: subGroupId || null, subSubGroupId: subSubGroupId || null, subSubSubGroupId: subSubSubGroupId || null });
+  splitBulkNames(label).forEach(n=>{
+    ex.steps.push({ id: uid(), label: n, status: 'not_started', thisWeek: !!thisWeek, groupId: groupId || null, subGroupId: subGroupId || null, subSubGroupId: subSubGroupId || null, subSubSubGroupId: subSubSubGroupId || null });
+  });
+  save(); render();
+}
+function bulkAddStepToParamSiblings(studentId, pieceId, exerciseId, label){
+  if(!label.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  (ex.groups||[]).forEach(g=>{
+    ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: false, groupId: g.id, subGroupId: null, subSubGroupId: null, subSubSubGroupId: null });
+  });
+  save(); render();
+}
+function bulkAddStepToSubparamSiblings(studentId, pieceId, exerciseId, groupId, label){
+  if(!label.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId); const g = ex && (ex.groups||[]).find(x=>x.id===groupId); if(!g) return;
+  (g.subgroups||[]).forEach(sg=>{
+    ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: false, groupId: groupId, subGroupId: sg.id, subSubGroupId: null, subSubSubGroupId: null });
+  });
+  save(); render();
+}
+function bulkAddStepToSubtypeSiblings(studentId, pieceId, exerciseId, groupId, subGroupId, label){
+  if(!label.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId); const g = ex && (ex.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); if(!sg) return;
+  (sg.subsubgroups||[]).forEach(ssg=>{
+    ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: false, groupId: groupId, subGroupId: subGroupId, subSubGroupId: ssg.id, subSubSubGroupId: null });
+  });
+  save(); render();
+}
+function bulkAddStepToSubsubtypeSiblings(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId, label){
+  if(!label.trim()) return;
+  const ex = getExercise(studentId, pieceId, exerciseId); const g = ex && (ex.groups||[]).find(x=>x.id===groupId); const sg = g && (g.subgroups||[]).find(x=>x.id===subGroupId); const ssg = sg && (sg.subsubgroups||[]).find(x=>x.id===subSubGroupId); if(!ssg) return;
+  (ssg.subsubsubgroups||[]).forEach(sssg=>{
+    ex.steps.push({ id: uid(), label: label.trim(), status: 'not_started', thisWeek: false, groupId: groupId, subGroupId: subGroupId, subSubGroupId: subSubGroupId, subSubSubGroupId: sssg.id });
+  });
   save(); render();
 }
 function removeStep(studentId, pieceId, exerciseId, stepId){
@@ -1054,13 +1180,18 @@ function moveStep(studentId, pieceId, exerciseId, stepId, dir){
   [ex.steps[i], ex.steps[j]] = [ex.steps[j], ex.steps[i]];
   save(); render();
 }
+function splitBulkNames(raw){
+  return raw.split(',').map(s=>s.trim()).filter(Boolean);
+}
 function addGroup(studentId, pieceId, exerciseId, name){
   if(!name.trim()) return;
   const ex = getExercise(studentId, pieceId, exerciseId);
   if(!ex.groups) ex.groups = [];
-  const newId = uid();
-  ex.groups.push({ id: newId, name: name.trim(), subgroups: [] });
-  state.collapsedGroups.add(newId);
+  splitBulkNames(name).forEach(n=>{
+    const newId = uid();
+    ex.groups.push({ id: newId, name: n, subgroups: [] });
+    state.collapsedGroups.add(newId);
+  });
   save(); render();
 }
 function removeGroup(studentId, pieceId, exerciseId, groupId){
@@ -1082,9 +1213,11 @@ function addSubgroup(studentId, pieceId, exerciseId, groupId, name){
   const ex = getExercise(studentId, pieceId, exerciseId);
   const g = (ex.groups||[]).find(x=>x.id===groupId);
   if(!g.subgroups) g.subgroups = [];
-  const newId = uid();
-  g.subgroups.push({ id: newId, name: name.trim(), subsubgroups: [] });
-  state.collapsedSubgroups.add(newId);
+  splitBulkNames(name).forEach(n=>{
+    const newId = uid();
+    g.subgroups.push({ id: newId, name: n, subsubgroups: [] });
+    state.collapsedSubgroups.add(newId);
+  });
   save(); render();
 }
 function removeSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId){
@@ -1107,9 +1240,11 @@ function addSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, nam
   const g = (ex.groups||[]).find(x=>x.id===groupId);
   const sg = (g.subgroups||[]).find(x=>x.id===subGroupId);
   if(!sg.subsubgroups) sg.subsubgroups = [];
-  const newId = uid();
-  sg.subsubgroups.push({ id: newId, name: name.trim(), subsubsubgroups: [] });
-  state.collapsedSubSubgroups.add(newId);
+  splitBulkNames(name).forEach(n=>{
+    const newId = uid();
+    sg.subsubgroups.push({ id: newId, name: n, subsubsubgroups: [] });
+    state.collapsedSubSubgroups.add(newId);
+  });
   save(); render();
 }
 function removeSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId){
@@ -1128,9 +1263,11 @@ function addSubSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, 
   const ssg = (sg.subsubgroups||[]).find(x=>x.id===subSubGroupId);
   if(!ssg) return;
   if(!ssg.subsubsubgroups) ssg.subsubsubgroups = [];
-  const newId = uid();
-  ssg.subsubsubgroups.push({ id: newId, name: name.trim() });
-  state.collapsedSubSubSubgroups.add(newId);
+  splitBulkNames(name).forEach(n=>{
+    const newId = uid();
+    ssg.subsubsubgroups.push({ id: newId, name: n });
+    state.collapsedSubSubSubgroups.add(newId);
+  });
   save(); render();
 }
 function removeSubSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId, subSubSubGroupId){
@@ -1872,6 +2009,7 @@ function renderExTplEditor(t){
             <button class="btn-ghost btn-tiny" data-ex-tpl-remove-subsubtype="${t.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}">Remove sub-sub-type</button>
             ${subTypeInner}
             <div class="tpl-editor-add-row"><input placeholder="New step" id="exTplStepIn-${t.id}-${g.id}-${sg.id}-${ssg.id}-${sssg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}">+ Add step</button></div>
+            <label class="tpl-bulk-check"><input type="checkbox" id="exTplBulkCk-${t.id}-${g.id}-${sg.id}-${ssg.id}-${sssg.id}"> Also add to every sub-sub-type here</label>
           </div>`;
         });
         subInner += `<div class="subsubgroup-block">
@@ -1882,6 +2020,7 @@ function renderExTplEditor(t){
             <input placeholder="New sub-sub-type" id="exTplSubsubtypeIn-${t.id}-${g.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-subsubtype="${t.id}|${g.id}|${sg.id}|${ssg.id}">+ Add sub-sub-type</button>
             <input placeholder="New step (direct)" id="exTplStepIn-${t.id}-${g.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}|${sg.id}|${ssg.id}|">+ Add step</button>
           </div>
+          <label class="tpl-bulk-check"><input type="checkbox" id="exTplBulkCk-${t.id}-${g.id}-${sg.id}-${ssg.id}"> Also add to every sub-type here</label>
         </div>`;
       });
       inner += `<div class="subgroup-block">
@@ -1892,6 +2031,7 @@ function renderExTplEditor(t){
           <input placeholder="New sub-type" id="exTplSubtypeIn-${t.id}-${g.id}-${sg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-subtype="${t.id}|${g.id}|${sg.id}">+ Add sub-type</button>
           <input placeholder="New step (direct)" id="exTplDirectStepIn-${t.id}-${g.id}-${sg.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}|${sg.id}|">+ Add step</button>
         </div>
+        <label class="tpl-bulk-check"><input type="checkbox" id="exTplBulkCk-${t.id}-${g.id}-${sg.id}"> Also add to every sub-parameter here</label>
       </div>`;
     });
     html += `<div class="group-block">
@@ -1902,6 +2042,7 @@ function renderExTplEditor(t){
         <input placeholder="New sub-parameter" id="exTplSubparamIn-${t.id}-${g.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-subparam="${t.id}|${g.id}">+ Add sub-parameter</button>
         <input placeholder="New step (direct)" id="exTplDirectStepIn2-${t.id}-${g.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-step="${t.id}|${g.id}||">+ Add step</button>
       </div>
+      <label class="tpl-bulk-check"><input type="checkbox" id="exTplBulkCk-${t.id}-${g.id}"> Also add to every parameter</label>
     </div>`;
   });
   html += `<div class="tpl-editor-add-row"><input placeholder="New parameter" id="exTplParamIn-${t.id}"><button class="btn-primary btn-tiny" data-ex-tpl-add-param="${t.id}">+ Add parameter</button></div>`;
@@ -1921,6 +2062,7 @@ function renderParamTplEditor(t){
           <button class="btn-ghost btn-tiny" data-param-tpl-remove-subsubtype="${t.id}|${sg.id}|${ssg.id}|${sssg.id}">Remove sub-sub-type</button>
           ${subTypeInner}
           <div class="tpl-editor-add-row"><input placeholder="New step" id="paramTplStepIn-${t.id}-${sg.id}-${ssg.id}-${sssg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}|${sg.id}|${ssg.id}|${sssg.id}">+ Add step</button></div>
+          <label class="tpl-bulk-check"><input type="checkbox" id="paramTplBulkCk-${t.id}-${sg.id}-${ssg.id}-${sssg.id}"> Also add to every sub-sub-type here</label>
         </div>`;
       });
       subInner += `<div class="subsubgroup-block">
@@ -1931,6 +2073,7 @@ function renderParamTplEditor(t){
           <input placeholder="New sub-sub-type" id="paramTplSubsubtypeIn-${t.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-subsubtype="${t.id}|${sg.id}|${ssg.id}">+ Add sub-sub-type</button>
           <input placeholder="New step (direct)" id="paramTplStepIn-${t.id}-${sg.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}|${sg.id}|${ssg.id}|">+ Add step</button>
         </div>
+        <label class="tpl-bulk-check"><input type="checkbox" id="paramTplBulkCk-${t.id}-${sg.id}-${ssg.id}"> Also add to every sub-type here</label>
       </div>`;
     });
     inner += `<div class="subgroup-block">
@@ -1941,6 +2084,7 @@ function renderParamTplEditor(t){
         <input placeholder="New sub-type" id="paramTplSubtypeIn-${t.id}-${sg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-subtype="${t.id}|${sg.id}">+ Add sub-type</button>
         <input placeholder="New step (direct)" id="paramTplDirectStepIn-${t.id}-${sg.id}"><button class="btn-primary btn-tiny" data-param-tpl-add-step="${t.id}|${sg.id}|">+ Add step</button>
       </div>
+      <label class="tpl-bulk-check"><input type="checkbox" id="paramTplBulkCk-${t.id}-${sg.id}"> Also add to every sub-parameter here</label>
     </div>`;
   });
   return `${inner}
@@ -1961,6 +2105,7 @@ function renderSubParamTplEditor(t){
         <button class="btn-ghost btn-tiny" data-subparam-tpl-remove-subsubtype="${t.id}|${ssg.id}|${sssg.id}">Remove sub-sub-type</button>
         ${subTypeInner}
         <div class="tpl-editor-add-row"><input placeholder="New step" id="subparamTplStepIn-${t.id}-${ssg.id}-${sssg.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-step="${t.id}|${ssg.id}|${sssg.id}">+ Add step</button></div>
+        <label class="tpl-bulk-check"><input type="checkbox" id="subparamTplBulkCk-${t.id}-${ssg.id}-${sssg.id}"> Also add to every sub-sub-type here</label>
       </div>`;
     });
     inner += `<div class="subsubgroup-block">
@@ -1971,6 +2116,7 @@ function renderSubParamTplEditor(t){
         <input placeholder="New sub-sub-type" id="subparamTplSubsubtypeIn-${t.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-subsubtype="${t.id}|${ssg.id}">+ Add sub-sub-type</button>
         <input placeholder="New step (direct)" id="subparamTplStepIn-${t.id}-${ssg.id}"><button class="btn-primary btn-tiny" data-subparam-tpl-add-step="${t.id}|${ssg.id}|">+ Add step</button>
       </div>
+      <label class="tpl-bulk-check"><input type="checkbox" id="subparamTplBulkCk-${t.id}-${ssg.id}"> Also add to every sub-type here</label>
     </div>`;
   });
   return `${inner}
@@ -1989,6 +2135,7 @@ function renderSubTypeTplEditor(t){
       <button class="btn-ghost btn-tiny" data-subtype-tpl-remove-subsubtype="${t.id}|${sssg.id}">Remove sub-sub-type</button>
       ${subTypeInner}
       <div class="tpl-editor-add-row"><input placeholder="New step" id="subtypeTplStepIn-${t.id}-${sssg.id}"><button class="btn-primary btn-tiny" data-subtype-tpl-add-step="${t.id}|${sssg.id}">+ Add step</button></div>
+      <label class="tpl-bulk-check"><input type="checkbox" id="subtypeTplBulkCk-${t.id}-${sssg.id}"> Also add to every sub-sub-type here</label>
     </div>`;
   });
   return `${inner}
@@ -2175,7 +2322,10 @@ function render(){
                   </div>
                   ${isSSSCollapsed ? '' : `
                     <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                      <input placeholder="+ Add step, press Enter" id="quickstep-sss-${sssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}" style="flex:1;font-size:12.5px;">
+                      <input placeholder="+ Add step, or comma-separated list" id="quickstep-sss-${sssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}" style="flex:1;font-size:12.5px;">
+                    </div>
+                    <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-sss-${sssg.id}"> Also add to every sub-sub-type here</label>
+                    <div style="display:none;">
                     </div>
                     ${steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>'}
                   `}
@@ -2202,12 +2352,15 @@ function render(){
                 </div>
                 ${isSSCollapsed ? '' : `
                   <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                    <input placeholder="+ Add step directly here, press Enter" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|" style="flex:1;font-size:12.5px;">
+                    <input placeholder="+ Add step, or comma-separated list" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|" style="flex:1;font-size:12.5px;">
+                  </div>
+                  <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-ss-${ssg.id}"> Also add to every sub-type here</label>
+                  <div style="display:none;">
                   </div>
                   ${directSSHTML || (ssg.subsubsubgroups.length ? '' : '<div class="hint">No steps yet.</div>')}
                   ${subSubSubSections}
                   <div class="add-subgroup-row">
-                    <input placeholder="New sub-sub-type, e.g. further detail" id="subsubsubgroupinput-${ssg.id}" data-add-subsubsubgroup-path="${ssPath}">
+                    <input placeholder="New sub-sub-type (or comma-separated list)" id="subsubsubgroupinput-${ssg.id}" data-add-subsubsubgroup-path="${ssPath}">
                     <button class="btn-ghost btn-tiny" data-add-subsubsubgroup="${ssPath}">Add sub-sub-type</button>
                   </div>
                 `}
@@ -2234,12 +2387,15 @@ function render(){
               </div>
               ${isSubCollapsed ? '' : `
                 <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                  <input placeholder="+ Add step directly here, press Enter" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                  <input placeholder="+ Add step, or comma-separated list" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                </div>
+                <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-sg-${sg.id}"> Also add to every sub-parameter here</label>
+                <div style="display:none;">
                 </div>
                 ${directSubHTML || (sg.subsubgroups.length ? '' : '<div class="hint">No steps yet.</div>')}
                 ${subSubSections}
                 <div class="add-subsubgroup-row">
-                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
+                  <input placeholder="New sub-type (or comma-separated list)" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
                   <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
                 </div>
               `}
@@ -2266,12 +2422,15 @@ function render(){
             </div>
             ${isGroupCollapsed ? '' : `
               <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                <input placeholder="+ Add step directly here, press Enter" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+                <input placeholder="+ Add step, or comma-separated list" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+              </div>
+              <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-g-${g.id}"> Also add to every parameter</label>
+              <div style="display:none;">
               </div>
               ${directHTML || (g.subgroups.length ? '' : '<div class="hint">No steps in this parameter yet.</div>')}
               ${subSections}
               <div class="add-subgroup-row">
-                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
+                <input placeholder="New subparameter (or comma-separated list)" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
                 <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
               </div>
             `}
@@ -2303,22 +2462,22 @@ function render(){
             ${ungroupedHTML || (ex.groups.length ? '' : '<div class="hint">No steps yet — add the first one below.</div>')}
             ${groupSections}
             <div class="add-step-row">
-              <input placeholder="Add step" id="stepinput-${ex.id}">
-              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}">
+              <input placeholder="Add step (or comma-separated list)" id="stepinput-${ex.id}">
+              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No parameter</option>
                 ${ex.groups.map(g=>`<option value="${g.id}">${escapeHTML(g.name)}</option>`).join('')}
               </select>
-              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled>
+              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No subparameter</option>
               </select>
-              <select id="stepsubsubgroup-${ex.id}" disabled>
+              <select id="stepsubsubgroup-${ex.id}" disabled style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No sub-type</option>
               </select>
               <button class="btn-primary btn-tiny" data-add-step="${student.id}|${p.id}|${ex.id}">Add step</button>
             </div>
             <div class="hint">Pick parameter → subparameter → sub-type before adding, and the step lands directly where it belongs.</div>
             <div class="add-group-row">
-              <input placeholder="New parameter, e.g. String set, Position" id="groupinput-${ex.id}">
+              <input placeholder="New parameter (or comma-separated list)" id="groupinput-${ex.id}">
               <button class="btn-ghost btn-tiny" data-add-group="${student.id}|${p.id}|${ex.id}">Add parameter</button>
             </div>
           `}
@@ -2401,7 +2560,10 @@ function render(){
                   </div>
                   ${isSSSCollapsed ? '' : `
                     <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                      <input placeholder="+ Add step, press Enter" id="quickstep-sss-${sssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}" style="flex:1;font-size:12.5px;">
+                      <input placeholder="+ Add step, or comma-separated list" id="quickstep-sss-${sssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|${sssg.id}" style="flex:1;font-size:12.5px;">
+                    </div>
+                    <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-sss-${sssg.id}"> Also add to every sub-sub-type here</label>
+                    <div style="display:none;">
                     </div>
                     ${steps.map(st=>stepRowHTML(p, ex, st)).join('') || '<div class="hint">No steps yet.</div>'}
                   `}
@@ -2426,12 +2588,15 @@ function render(){
                 </div>
                 ${isSSCollapsed ? '' : `
                   <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                    <input placeholder="+ Add step, press Enter" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|" style="flex:1;font-size:12.5px;">
+                    <input placeholder="+ Add step, or comma-separated list" id="quickstep-ss-${ssg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|${ssg.id}|" style="flex:1;font-size:12.5px;">
+                  </div>
+                  <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-ss-${ssg.id}"> Also add to every sub-type here</label>
+                  <div style="display:none;">
                   </div>
                   ${directSSHTML || (ssg.subsubsubgroups.length ? '' : '<div class="hint">No steps yet.</div>')}
                   ${subSubSubSections}
                   <div class="add-subgroup-row">
-                    <input placeholder="New sub-sub-type, e.g. further detail" id="subsubsubgroupinput-${ssg.id}" data-add-subsubsubgroup-path="${ssPath}">
+                    <input placeholder="New sub-sub-type (or comma-separated list)" id="subsubsubgroupinput-${ssg.id}" data-add-subsubsubgroup-path="${ssPath}">
                     <button class="btn-ghost btn-tiny" data-add-subsubsubgroup="${ssPath}">Add sub-sub-type</button>
                   </div>
                 `}
@@ -2456,12 +2621,15 @@ function render(){
               </div>
               ${isSubCollapsed ? '' : `
                 <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                  <input placeholder="+ Add step directly here, press Enter" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                  <input placeholder="+ Add step, or comma-separated list" id="quickstep-sg-${sg.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}|${sg.id}|" style="flex:1;font-size:12.5px;">
+                </div>
+                <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-sg-${sg.id}"> Also add to every sub-parameter here</label>
+                <div style="display:none;">
                 </div>
                 ${directSubHTML}
                 ${subSubSections}
                 <div class="add-subsubgroup-row">
-                  <input placeholder="New sub-type, e.g. Shape Only" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
+                  <input placeholder="New sub-type (or comma-separated list)" id="subsubgroupinput-${sg.id}" data-add-subsubgroup-path="${sgPath}">
                   <button class="btn-primary btn-tiny" data-add-subsubgroup="${sgPath}">+ Add sub-type</button>
                 </div>
               `}
@@ -2487,12 +2655,15 @@ function render(){
             </div>
             ${isGroupCollapsed ? '' : `
               <div class="add-step-row-inline" style="display:flex;gap:6px;margin:6px 0;">
-                <input placeholder="+ Add step directly here, press Enter" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+                <input placeholder="+ Add step, or comma-separated list" id="quickstep-g-${g.id}" data-quickstep-path="${student.id}|${p.id}|${ex.id}|${g.id}||" style="flex:1;font-size:12.5px;">
+              </div>
+              <label class="tpl-bulk-check"><input type="checkbox" id="quickBulkCk-g-${g.id}"> Also add to every parameter</label>
+              <div style="display:none;">
               </div>
               ${directHTML}
               ${subSections}
               <div class="add-subgroup-row">
-                <input placeholder="New subparameter, e.g. Ascending" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
+                <input placeholder="New subparameter (or comma-separated list)" id="subgroupinput-${g.id}" data-add-subgroup-path="${gPath}">
                 <button class="btn-ghost btn-tiny" data-add-subgroup="${gPath}">Add subparameter</button>
               </div>
             `}
@@ -2522,21 +2693,21 @@ function render(){
             ${ungroupedHTML}
             ${groupSections}
             <div class="add-step-row">
-              <input placeholder="Add step" id="stepinput-${ex.id}">
-              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}">
+              <input placeholder="Add step (or comma-separated list)" id="stepinput-${ex.id}">
+              <select id="stepgroup-${ex.id}" data-cascade-group="${ex.id}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No parameter</option>
                 ${ex.groups.map(g=>`<option value="${g.id}">${escapeHTML(g.name)}</option>`).join('')}
               </select>
-              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled>
+              <select id="stepsubgroup-${ex.id}" data-cascade-subgroup="${ex.id}" disabled style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No subparameter</option>
               </select>
-              <select id="stepsubsubgroup-${ex.id}" disabled>
+              <select id="stepsubsubgroup-${ex.id}" disabled style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 <option value="">No sub-type</option>
               </select>
               <button class="btn-primary btn-tiny" data-add-step-week="${exPath}">+ Add step (this week)</button>
             </div>
             <div class="add-group-row">
-              <input placeholder="New parameter, e.g. String set, Position" id="groupinput-${ex.id}">
+              <input placeholder="New parameter (or comma-separated list)" id="groupinput-${ex.id}">
               <button class="btn-ghost btn-tiny" data-add-group="${exPath}">Add parameter</button>
             </div>
           `}
@@ -2662,7 +2833,7 @@ function render(){
     allExerciseNames.sort((a,b)=> a.localeCompare(b));
 
     const assignSourceHtml = (t, collectionName)=> (!t.sourceExercise) && allExerciseNames.length
-      ? `<select id="assignsrc-${t.id}">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
+      ? `<select id="assignsrc-${t.id}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
          <button class="btn-ghost btn-tiny" data-assign-template-source="${collectionName}|${t.id}">File under this exercise</button>`
       : '';
 
@@ -2731,7 +2902,7 @@ function render(){
       const isCollapsed = state.collapsedTemplateCards.has(cardKey);
       const bulkAssignHtml = (g.key==='Other' && allExerciseNames.length) ? `
         <div class="add-group-row" style="margin-bottom:12px;">
-          <select id="bulkassignsrc">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
+          <select id="bulkassignsrc" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${allExerciseNames.map(n=>`<option value="${escapeAttr(n)}">${escapeHTML(n)}</option>`).join('')}</select>
           <button class="btn-primary btn-tiny" data-bulk-assign-source>File ALL of these under this exercise</button>
         </div>` : '';
       return `
@@ -3567,12 +3738,30 @@ function bind(){
   document.querySelectorAll('[data-ex-tpl-add-step]').forEach(el=>{
     el.onclick = ()=>{
       const [tid, gid, sgid, ssgid, sssgid] = el.dataset.exTplAddStep.split('|');
-      let inp;
-      if(sssgid) inp = document.getElementById(`exTplStepIn-${tid}-${gid}-${sgid}-${ssgid}-${sssgid}`);
-      else if(ssgid) inp = document.getElementById(`exTplStepIn-${tid}-${gid}-${sgid}-${ssgid}`);
-      else if(sgid) inp = document.getElementById(`exTplDirectStepIn-${tid}-${gid}-${sgid}`);
-      else inp = document.getElementById(`exTplDirectStepIn2-${tid}-${gid}`);
-      if(inp) addExTplStep(tid, gid||null, sgid||null, ssgid||null, inp.value, sssgid||null);
+      let inp, idSuffix;
+      if(sssgid){
+        idSuffix = `${tid}-${gid}-${sgid}-${ssgid}-${sssgid}`;
+        inp = document.getElementById(`exTplStepIn-${idSuffix}`);
+      } else if(ssgid){
+        idSuffix = `${tid}-${gid}-${sgid}-${ssgid}`;
+        inp = document.getElementById(`exTplStepIn-${idSuffix}`);
+      } else if(sgid){
+        idSuffix = `${tid}-${gid}-${sgid}`;
+        inp = document.getElementById(`exTplDirectStepIn-${idSuffix}`);
+      } else {
+        idSuffix = `${tid}-${gid}`;
+        inp = document.getElementById(`exTplDirectStepIn2-${idSuffix}`);
+      }
+      if(!inp) return;
+      const bulkCk = document.getElementById('exTplBulkCk-'+idSuffix);
+      if(bulkCk && bulkCk.checked){
+        if(sssgid) bulkAddExTplStepToSubsubtypeSiblings(tid, gid, sgid, ssgid, inp.value);
+        else if(ssgid) bulkAddExTplStepToSubtypeSiblings(tid, gid, sgid, inp.value);
+        else if(sgid) bulkAddExTplStepToSubparamSiblings(tid, gid, inp.value);
+        else bulkAddExTplStepToParamSiblings(tid, inp.value);
+      } else {
+        addExTplStep(tid, gid||null, sgid||null, ssgid||null, inp.value, sssgid||null);
+      }
     };
   });
   document.querySelectorAll('[data-ex-tpl-remove-step]').forEach(el=>{
@@ -3601,12 +3790,30 @@ function bind(){
   document.querySelectorAll('[data-param-tpl-add-step]').forEach(el=>{
     el.onclick = ()=>{
       const [tid, sgid, ssgid, sssgid] = el.dataset.paramTplAddStep.split('|');
-      let inp;
-      if(sssgid) inp = document.getElementById(`paramTplStepIn-${tid}-${sgid}-${ssgid}-${sssgid}`);
-      else if(ssgid) inp = document.getElementById(`paramTplStepIn-${tid}-${sgid}-${ssgid}`);
-      else if(sgid) inp = document.getElementById(`paramTplDirectStepIn-${tid}-${sgid}`);
-      else inp = document.getElementById(`paramTplDirectStepIn2-${tid}`);
-      if(inp) addParamTplStep(tid, sgid||null, ssgid||null, inp.value, sssgid||null);
+      let inp, idSuffix;
+      if(sssgid){
+        idSuffix = `${tid}-${sgid}-${ssgid}-${sssgid}`;
+        inp = document.getElementById(`paramTplStepIn-${idSuffix}`);
+      } else if(ssgid){
+        idSuffix = `${tid}-${sgid}-${ssgid}`;
+        inp = document.getElementById(`paramTplStepIn-${idSuffix}`);
+      } else if(sgid){
+        idSuffix = `${tid}-${sgid}`;
+        inp = document.getElementById(`paramTplDirectStepIn-${idSuffix}`);
+      } else {
+        idSuffix = tid;
+        inp = document.getElementById(`paramTplDirectStepIn2-${idSuffix}`);
+      }
+      if(!inp) return;
+      const bulkCk = document.getElementById('paramTplBulkCk-'+idSuffix);
+      if(bulkCk && bulkCk.checked){
+        if(sssgid) bulkAddParamTplStepToSubsubtypeSiblings(tid, sgid, ssgid, inp.value);
+        else if(ssgid) bulkAddParamTplStepToSubtypeSiblings(tid, sgid, inp.value);
+        else if(sgid) bulkAddParamTplStepToSubparamSiblings(tid, inp.value);
+        else addParamTplStep(tid, sgid||null, ssgid||null, inp.value, sssgid||null);
+      } else {
+        addParamTplStep(tid, sgid||null, ssgid||null, inp.value, sssgid||null);
+      }
     };
   });
   document.querySelectorAll('[data-param-tpl-remove-step]').forEach(el=>{
@@ -3629,11 +3836,26 @@ function bind(){
   document.querySelectorAll('[data-subparam-tpl-add-step]').forEach(el=>{
     el.onclick = ()=>{
       const [tid, ssgid, sssgid] = el.dataset.subparamTplAddStep.split('|');
-      let inp;
-      if(sssgid) inp = document.getElementById(`subparamTplStepIn-${tid}-${ssgid}-${sssgid}`);
-      else if(ssgid) inp = document.getElementById(`subparamTplStepIn-${tid}-${ssgid}`);
-      else inp = document.getElementById(`subparamTplDirectStepIn-${tid}`);
-      if(inp) addSubParamTplStep(tid, ssgid||null, inp.value, sssgid||null);
+      let inp, idSuffix;
+      if(sssgid){
+        idSuffix = `${tid}-${ssgid}-${sssgid}`;
+        inp = document.getElementById(`subparamTplStepIn-${idSuffix}`);
+      } else if(ssgid){
+        idSuffix = `${tid}-${ssgid}`;
+        inp = document.getElementById(`subparamTplStepIn-${idSuffix}`);
+      } else {
+        idSuffix = tid;
+        inp = document.getElementById(`subparamTplDirectStepIn-${idSuffix}`);
+      }
+      if(!inp) return;
+      const bulkCk = document.getElementById('subparamTplBulkCk-'+idSuffix);
+      if(bulkCk && bulkCk.checked){
+        if(sssgid) bulkAddSubParamTplStepToSubsubtypeSiblings(tid, ssgid, inp.value);
+        else if(ssgid) bulkAddSubParamTplStepToSubtypeSiblings(tid, inp.value);
+        else addSubParamTplStep(tid, ssgid||null, inp.value, sssgid||null);
+      } else {
+        addSubParamTplStep(tid, ssgid||null, inp.value, sssgid||null);
+      }
     };
   });
   document.querySelectorAll('[data-subparam-tpl-remove-step]').forEach(el=>{
@@ -3650,8 +3872,19 @@ function bind(){
   document.querySelectorAll('[data-subtype-tpl-add-step]').forEach(el=>{
     el.onclick = ()=>{
       const [tid, sssgid] = el.dataset.subtypeTplAddStep.split('|');
-      const inp = sssgid ? document.getElementById(`subtypeTplStepIn-${tid}-${sssgid}`) : document.getElementById(`subtypeTplDirectStepIn-${tid}`);
-      if(inp) addSubTypeTplStep(tid, inp.value, sssgid||null);
+      let inp;
+      if(sssgid){
+        inp = document.getElementById(`subtypeTplStepIn-${tid}-${sssgid}`);
+      } else {
+        inp = document.getElementById(`subtypeTplDirectStepIn-${tid}`);
+      }
+      if(!inp) return;
+      const bulkCk = sssgid ? document.getElementById(`subtypeTplBulkCk-${tid}-${sssgid}`) : null;
+      if(bulkCk && bulkCk.checked){
+        bulkAddSubTypeTplStepToSubsubtypeSiblings(tid, inp.value);
+      } else {
+        addSubTypeTplStep(tid, inp.value, sssgid||null);
+      }
     };
   });
   document.querySelectorAll('[data-subtype-tpl-remove-step]').forEach(el=>{
@@ -3742,7 +3975,15 @@ function bind(){
       if(!label.trim()) return;
       const [sid, pid, eid, gid, sgid, ssgid, sssgid] = el.dataset.quickstepPath.split('|');
       const inputId = el.id;
-      addStep(sid, pid, eid, label, gid||null, sgid||null, ssgid||null, false, sssgid||null);
+      const bulkCk = document.getElementById(inputId.replace('quickstep-', 'quickBulkCk-'));
+      if(bulkCk && bulkCk.checked){
+        if(sssgid) bulkAddStepToSubsubtypeSiblings(sid, pid, eid, gid, sgid, ssgid, label);
+        else if(ssgid) bulkAddStepToSubtypeSiblings(sid, pid, eid, gid, sgid, label);
+        else if(sgid) bulkAddStepToSubparamSiblings(sid, pid, eid, gid, label);
+        else bulkAddStepToParamSiblings(sid, pid, eid, label);
+      } else {
+        addStep(sid, pid, eid, label, gid||null, sgid||null, ssgid||null, false, sssgid||null);
+      }
       setTimeout(()=>{
         const freshInput = document.getElementById(inputId);
         if(freshInput) freshInput.focus();
