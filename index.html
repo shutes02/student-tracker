@@ -1349,6 +1349,52 @@ function toggleThisWeek(studentId, pieceId, exerciseId, stepId){
   }
   save(); render();
 }
+function activateAllStepsInGroup(studentId, pieceId, exerciseId, groupId){
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  ex.steps.forEach(st=>{
+    if(st.groupId===groupId && st.status!=='locked_in') st.thisWeek = true;
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  save(); render();
+}
+function activateAllStepsInSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  ex.steps.forEach(st=>{
+    if(st.groupId===groupId && st.subGroupId===subGroupId && st.status!=='locked_in') st.thisWeek = true;
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  state.collapsedSubgroups.delete(subGroupId);
+  save(); render();
+}
+function activateAllStepsInSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  ex.steps.forEach(st=>{
+    if(st.groupId===groupId && st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId && st.status!=='locked_in') st.thisWeek = true;
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  state.collapsedSubgroups.delete(subGroupId);
+  state.collapsedSubSubgroups.delete(subSubGroupId);
+  save(); render();
+}
+function activateAllStepsInSubSubSubgroup(studentId, pieceId, exerciseId, groupId, subGroupId, subSubGroupId, subSubSubGroupId){
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  ex.steps.forEach(st=>{
+    if(st.groupId===groupId && st.subGroupId===subGroupId && st.subSubGroupId===subSubGroupId && st.subSubSubGroupId===subSubSubGroupId && st.status!=='locked_in') st.thisWeek = true;
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  state.collapsedGroups.delete(groupId);
+  state.collapsedSubgroups.delete(subGroupId);
+  state.collapsedSubSubgroups.delete(subSubGroupId);
+  state.collapsedSubSubSubgroups.delete(subSubSubGroupId);
+  save(); render();
+}
 
 const MSG_STATUS_TAG = { needs_review: '🔁 Review', in_process: '🌱 Waiting for submission', refining: '🔶 Almost there', not_started: '⏸ Standby' };
 const MSG_STATUS_PRIORITY = { in_process: 0, refining: 1, needs_review: 2, not_started: 3 };
@@ -2360,6 +2406,7 @@ function render(){
                       <span class="subsubsubgroup-name editable" data-edit="subsubsubgroup|${sssPath}" title="Double-click to rename">${escapeHTML(sssg.name)}</span>
                       ${isSSSCollapsed ? `<div class="subsubsubgroup-summary">${sssSummary}</div>` : ''}
                     </div>
+                    <button class="btn-primary btn-tiny" data-activate-subsubsubgroup="${sssPath}">Activate all this week</button>
                     <button class="btn-ghost btn-tiny" data-remove-subsubsubgroup="${sssPath}">Remove</button>
                   </div>
                   ${isSSSCollapsed ? '' : `
@@ -2390,6 +2437,7 @@ function render(){
                     ${isSSCollapsed ? `<div class="subsubgroup-summary">${ssSummary}</div>` : ''}
                   </div>
                   <button class="btn-ghost btn-tiny" data-save-subtype-template="${ssPath}">Save as Template</button>
+                  <button class="btn-primary btn-tiny" data-activate-subsubgroup="${ssPath}">Activate all this week</button>
                   <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
                 </div>
                 ${isSSCollapsed ? '' : `
@@ -2428,6 +2476,7 @@ function render(){
                   ${isSubCollapsed ? `<div class="subgroup-summary">${subSummary}</div>` : ''}
                 </div>
                 <button class="btn-ghost btn-tiny" data-save-subparam-template="${sgPath}">Save as Template</button>
+                <button class="btn-primary btn-tiny" data-activate-subgroup="${sgPath}">Activate all this week</button>
                 <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
               </div>
               ${isSubCollapsed ? '' : `
@@ -2466,6 +2515,7 @@ function render(){
                 ${isGroupCollapsed ? `<div class="group-summary">${groupSummary}</div>` : ''}
               </div>
               <button class="btn-ghost btn-tiny" data-save-param-template="${gPath}">Save as Template</button>
+              <button class="btn-primary btn-tiny" data-activate-group="${gPath}">Activate all this week</button>
               <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
             </div>
             ${isGroupCollapsed ? '' : `
@@ -2605,6 +2655,7 @@ function render(){
                       <span class="subsubsubgroup-name editable" data-edit="subsubsubgroup|${sssPath}" title="Double-click to rename">${escapeHTML(sssg.name)}</span>
                       ${isSSSCollapsed ? `<div class="subsubsubgroup-summary">${sssSummary}</div>` : ''}
                     </div>
+                    <button class="btn-primary btn-tiny" data-activate-subsubsubgroup="${sssPath}">Activate all this week</button>
                     <button class="btn-ghost btn-tiny" data-remove-subsubsubgroup="${sssPath}">Remove</button>
                   </div>
                   ${isSSSCollapsed ? '' : `
@@ -2633,6 +2684,7 @@ function render(){
                     <span class="subsubgroup-name editable" data-edit="subsubgroup|${ssPath}" title="Double-click to rename">${escapeHTML(ssg.name)}</span>
                     ${isSSCollapsed ? `<div class="subsubgroup-summary">${ssSummary}</div>` : ''}
                   </div>
+                  <button class="btn-primary btn-tiny" data-activate-subsubgroup="${ssPath}">Activate all this week</button>
                   <button class="btn-ghost btn-tiny" data-remove-subsubgroup="${ssPath}">Remove</button>
                 </div>
                 ${isSSCollapsed ? '' : `
@@ -2669,6 +2721,7 @@ function render(){
                   <span class="subgroup-name editable" data-edit="subgroup|${sgPath}" title="Double-click to rename">${escapeHTML(sg.name)}</span>
                   ${isSubCollapsed ? `<div class="subgroup-summary">${subSummary}</div>` : ''}
                 </div>
+                <button class="btn-primary btn-tiny" data-activate-subgroup="${sgPath}">Activate all this week</button>
                 <button class="btn-ghost btn-tiny" data-remove-subgroup="${sgPath}">Remove</button>
               </div>
               ${isSubCollapsed ? '' : `
@@ -2706,6 +2759,7 @@ function render(){
                 <span class="group-name editable" data-edit="group|${gPath}" title="Double-click to rename">${escapeHTML(g.name)}</span>
                 ${isGroupCollapsed ? `<div class="group-summary">${groupSummary}</div>` : ''}
               </div>
+              <button class="btn-primary btn-tiny" data-activate-group="${gPath}">Activate all this week</button>
               <button class="btn-ghost btn-tiny" data-remove-group="${gPath}">Remove parameter</button>
             </div>
             ${isGroupCollapsed ? '' : `
@@ -3558,6 +3612,30 @@ function bind(){
     el.onclick = ()=>{
       const [sid, pid, eid, gid] = el.dataset.removeGroup.split('|');
       removeGroup(sid, pid, eid, gid);
+    };
+  });
+  document.querySelectorAll('[data-activate-group]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid] = el.dataset.activateGroup.split('|');
+      activateAllStepsInGroup(sid, pid, eid, gid);
+    };
+  });
+  document.querySelectorAll('[data-activate-subgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid] = el.dataset.activateSubgroup.split('|');
+      activateAllStepsInSubgroup(sid, pid, eid, gid, sgid);
+    };
+  });
+  document.querySelectorAll('[data-activate-subsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid, ssgid] = el.dataset.activateSubsubgroup.split('|');
+      activateAllStepsInSubSubgroup(sid, pid, eid, gid, sgid, ssgid);
+    };
+  });
+  document.querySelectorAll('[data-activate-subsubsubgroup]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid, gid, sgid, ssgid, sssgid] = el.dataset.activateSubsubsubgroup.split('|');
+      activateAllStepsInSubSubSubgroup(sid, pid, eid, gid, sgid, ssgid, sssgid);
     };
   });
   document.querySelectorAll('[data-set-group]').forEach(el=>{
