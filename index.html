@@ -160,6 +160,8 @@ input:focus,select:focus{outline:1px solid var(--brass);}
 
 .msg-box{background:var(--rosewood-light);border:1px dashed var(--hairline);border-radius:8px;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.6;white-space:pre-wrap;color:var(--bone);}
 .exercise-jump-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;color:var(--sage);font-weight:600;}
+.step-jump-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--brass);}
+.step-jump-link:hover{color:var(--amber);}
 .exercise-jump-link:hover{color:var(--brass);}
 .hint{font-size:11.5px;color:var(--string);margin-top:6px;line-height:1.5;}
 .list-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);gap:10px;}
@@ -1349,6 +1351,15 @@ function toggleThisWeek(studentId, pieceId, exerciseId, stepId){
   }
   save(); render();
 }
+function activateAllStepsInExercise(studentId, pieceId, exerciseId){
+  const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
+  ex.steps.forEach(st=>{
+    if(st.status!=='locked_in') st.thisWeek = true;
+  });
+  state.collapsedPieces.delete(pieceId);
+  state.collapsedExercises.delete(exerciseId);
+  save(); render();
+}
 function activateAllStepsInGroup(studentId, pieceId, exerciseId, groupId){
   const ex = getExercise(studentId, pieceId, exerciseId); if(!ex) return;
   ex.steps.forEach(st=>{
@@ -1410,7 +1421,7 @@ function collectWeeklyExerciseGroups(studentId){
       const loc = `${p.name}: ${ex.name}`;
       const eg = { loc, pieceId: p.id, exerciseId: ex.id, params: [] };
 
-      const toItem = st=>({ label: st.label, status: st.status });
+      const toItem = st=>({ id: st.id, label: st.label, status: st.status, groupId: st.groupId, subGroupId: st.subGroupId, subSubGroupId: st.subSubGroupId, subSubSubGroupId: st.subSubSubGroupId });
 
       const ungroupedItems = flagged.filter(st=>!st.groupId).map(toItem);
       if(ungroupedItems.length) eg.params.push({ name: null, items: ungroupedItems, subparams: [] });
@@ -1506,8 +1517,8 @@ function buildMessage(studentId){
           });
         });
       });
+      msg += `\n`;
     });
-    msg += `\n`;
   });
   msg += `━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `*Key:*\n`;
@@ -1529,9 +1540,9 @@ function buildMessageHTML(studentId){
     return escapeHTML(`Nothing flagged "This Week" yet for ${s.name}. Toggle on the steps you want to assign, below.`);
   }
 
-  const printItems = (items, indent)=>{
+  const printItems = (items, indent, pieceId, exerciseId)=>{
     const sorted = [...items].sort((a,b)=> MSG_STATUS_PRIORITY[a.status] - MSG_STATUS_PRIORITY[b.status]);
-    return sorted.map(it=> `${indent}${MSG_STATUS_TAG[it.status]}: ${escapeHTML(it.label)}<br>`).join('');
+    return sorted.map(it=> `${indent}${MSG_STATUS_TAG[it.status]}: <span class="step-jump-link" data-jump-student="${studentId}" data-jump-piece="${pieceId}" data-jump-exercise="${exerciseId}" data-jump-group="${it.groupId||''}" data-jump-subgroup="${it.subGroupId||''}" data-jump-subsubgroup="${it.subSubGroupId||''}" data-jump-subsubsubgroup="${it.subSubSubGroupId||''}" data-jump-step="${it.id}" title="Click to jump to this step in This Week">${escapeHTML(it.label)}</span><br>`).join('');
   };
 
   let msg = `Here's the plan until our next check-in:<br><br>`;
@@ -1541,24 +1552,24 @@ function buildMessageHTML(studentId){
       const i1 = pe.name ? '   ' : '';
       if(pe.name) msg += `${i1}${escapeHTML(pe.name)}<br>`;
       const i2 = pe.name ? '      ' : '   ';
-      msg += printItems(pe.items, i2);
+      msg += printItems(pe.items, i2, eg.pieceId, eg.exerciseId);
       pe.subparams.forEach(se=>{
         msg += `${i2}${escapeHTML(se.name)}<br>`;
         const i3 = i2 + '   ';
-        msg += printItems(se.items, i3);
+        msg += printItems(se.items, i3, eg.pieceId, eg.exerciseId);
         se.subtypes.forEach(te=>{
           msg += `${i3}${escapeHTML(te.name)}<br>`;
           const i4 = i3 + '   ';
-          msg += printItems(te.items, i4);
+          msg += printItems(te.items, i4, eg.pieceId, eg.exerciseId);
           te.subsubtypes.forEach(ue=>{
             msg += `${i4}${escapeHTML(ue.name)}<br>`;
             const i5 = i4 + '   ';
-            msg += printItems(ue.items, i5);
+            msg += printItems(ue.items, i5, eg.pieceId, eg.exerciseId);
           });
         });
       });
+      msg += `<br>`;
     });
-    msg += `<br>`;
   });
   msg += `━━━━━━━━━━━━━━━━━━━━<br>`;
   msg += `<strong>Key:</strong><br>`;
@@ -2354,7 +2365,7 @@ function render(){
         subsubgroupSelectHTML = `<select class="subsubgroup-select" data-set-subsubgroup="${path}">${subSubOptions}</select>`;
       }
       return `
-        <div class="step-row ${st.thisWeek?'in-week':''}">
+        <div class="step-row ${st.thisWeek?'in-week':''}" id="step-${st.id}">
           <div class="step-order">
             <button class="order-btn" data-move="up" data-path="${path}" ${isFirst?'disabled':''}>▲</button>
             <button class="order-btn" data-move="down" data-path="${path}" ${isLast?'disabled':''}>▼</button>
@@ -2555,6 +2566,7 @@ function render(){
               ${isCollapsed ? `<div class="exercise-summary">${summary}</div>` : ''}
             </div>
             <button class="btn-ghost btn-tiny" data-save-template="${exPath}">Save as Template</button>
+            <button class="btn-primary btn-tiny" data-activate-exercise="${exPath}">Activate all this week</button>
             <button class="btn-ghost btn-tiny" data-remove-exercise="${exPath}">Remove exercise</button>
           </div>
           ${isCollapsed ? '' : `
@@ -2797,6 +2809,7 @@ function render(){
               <div class="exercise-name editable" data-edit="exercise|${exPath}" title="Double-click to rename">${escapeHTML(ex.name)}</div>
               ${isExCollapsed ? `<div class="exercise-summary">${exSummary}</div>` : ''}
             </div>
+            <button class="btn-primary btn-tiny" data-activate-exercise="${exPath}">Activate all this week</button>
             <button class="btn-ghost btn-tiny" data-remove-exercise="${exPath}">Remove exercise</button>
           </div>
           ${isExCollapsed ? '' : `
@@ -3515,6 +3528,12 @@ function bind(){
       removeExercise(sid, pid, eid);
     };
   });
+  document.querySelectorAll('[data-activate-exercise]').forEach(el=>{
+    el.onclick = ()=>{
+      const [sid, pid, eid] = el.dataset.activateExercise.split('|');
+      activateAllStepsInExercise(sid, pid, eid);
+    };
+  });
   document.querySelectorAll('[data-move-piece]').forEach(el=>{
     el.onclick = ()=>{
       const [dir, sid, pid] = el.dataset.movePiece.split('|');
@@ -3748,6 +3767,36 @@ function bind(){
           block.style.transition = 'background 0.4s';
           block.style.background = 'rgba(195,155,87,.25)';
           setTimeout(()=>{ block.style.background = ''; }, 1600);
+        }
+      }, 50);
+    };
+  });
+  document.querySelectorAll('.step-jump-link').forEach(el=>{
+    el.onclick = ()=>{
+      const sid = el.dataset.jumpStudent;
+      const pid = el.dataset.jumpPiece;
+      const eid = el.dataset.jumpExercise;
+      const gid = el.dataset.jumpGroup;
+      const sgid = el.dataset.jumpSubgroup;
+      const ssgid = el.dataset.jumpSubsubgroup;
+      const sssgid = el.dataset.jumpSubsubsubgroup;
+      const stepId = el.dataset.jumpStep;
+      state.selected = sid;
+      state.view = 'week';
+      state.collapsedPieces.delete(pid);
+      state.collapsedExercises.delete(eid);
+      if(gid) state.collapsedGroups.delete(gid);
+      if(sgid) state.collapsedSubgroups.delete(sgid);
+      if(ssgid) state.collapsedSubSubgroups.delete(ssgid);
+      if(sssgid) state.collapsedSubSubSubgroups.delete(sssgid);
+      render();
+      setTimeout(()=>{
+        const stepEl = document.getElementById('step-'+stepId);
+        if(stepEl){
+          stepEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          stepEl.style.transition = 'background 0.4s';
+          stepEl.style.background = 'rgba(195,155,87,.25)';
+          setTimeout(()=>{ stepEl.style.background = ''; }, 1600);
         }
       }, 50);
     };
